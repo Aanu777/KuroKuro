@@ -1,4 +1,11 @@
-export type SearchCategory = "general" | "images" | "videos" | "news" | "map" | "files" | "science";
+export type SearchCategory =
+  | "general"
+  | "images"
+  | "videos"
+  | "news"
+  | "map"
+  | "files"
+  | "science";
 
 export type SearchResult = {
   title: string;
@@ -6,7 +13,20 @@ export type SearchResult = {
   content?: string;
   engine?: string;
   category?: string;
+  template?: string;
   thumbnail?: string;
+  thumbnail_src?: string;
+  img_src?: string;
+  iframe_src?: string;
+  source?: string;
+  resolution?: string;
+  img_format?: string;
+  publishedDate?: string;
+  pubdate?: string;
+  author?: string;
+  views?: string;
+  length?: string;
+  [key: string]: unknown;
 };
 
 export type SearchResponse = {
@@ -15,9 +35,9 @@ export type SearchResponse = {
   results: SearchResult[];
   suggestions?: string[];
   infoboxes?: unknown[];
+  answers?: unknown[];
 };
 
 export function getCategoryParam(category: SearchCategory) {
-  if (category === "general") return "general";
-  return category;
+  return category === "general" ? "general" : category;
 }
