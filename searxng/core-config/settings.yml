@@ -11,7 +11,7 @@ search:
     - html
     - json
   safe_search: 1
-  autocomplete: "bing"
+  autocomplete: "google"
   autocomplete_min: 2
 
 outgoing:
