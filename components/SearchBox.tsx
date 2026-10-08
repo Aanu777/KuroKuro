@@ -24,8 +24,13 @@ export default function SearchBox({
   const [category, setCategory] = useState<SearchCategory>(initialCategory);
 
   useEffect(() => {
+    const preferred = localStorage.getItem("kurokuro-default-category") as SearchCategory | null;
+    if (!initialQuery && preferred && categories.some((item) => item.value === preferred)) setCategory(preferred);
+
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === "/" && document.activeElement?.tagName !== "INPUT") {
+      const target = event.target as HTMLElement | null;
+      const typing = target?.tagName === "INPUT" || target?.tagName === "TEXTAREA" || target?.isContentEditable;
+      if ((event.key === "/" && !typing) || ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k")) {
         event.preventDefault();
         document.getElementById("kurokuro-search")?.focus();
       }
