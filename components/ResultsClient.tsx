@@ -42,7 +42,21 @@ function isHttpUrl(value: unknown): value is string {
 }
 
 function getImageCandidates(result: SearchResult) {
-  return [result.thumbnail_src, result.thumbnail, result.img_src].filter(isHttpUrl);
+  return Array.from(
+    new Set([result.thumbnail_src, result.thumbnail, result.img_src].filter(isHttpUrl)),
+  );
+}
+
+function getHostname(url: string) {
+  try {
+    return new URL(url).hostname.replace(/^www\./, "");
+  } catch {
+    return "";
+  }
+}
+
+function getDisplaySource(result: SearchResult) {
+  return result.source || result.engine || getHostname(result.url) || "Web result";
 }
 
 function getImageUrl(result: SearchResult) {
@@ -168,7 +182,7 @@ function NewsResult(props: {
       )}
       <div className="news-body">
         <div className="result-subline news-meta">
-          {result.source || result.engine || "News"}
+          {getDisplaySource(result)}
           {getPublishedDate(result) && <span>{getPublishedDate(result)}</span>}
         </div>
         <a className="news-title" href={result.url} target="_blank" rel="noreferrer">{result.title}</a>
@@ -199,7 +213,7 @@ function ImageResult(props: {
       </a>
       <div className="media-info">
         <a className="media-title" href={result.url} target="_blank" rel="noreferrer">{result.title}</a>
-        <div className="media-source">{result.source || result.engine || "Image result"}{result.resolution ? ` · ${result.resolution}` : ""}</div>
+        <div className="media-source">{getDisplaySource(result)}{result.resolution ? ` · ${result.resolution}` : ""}</div>
         <ResultActions result={result} query={query} saved={saved} copied={copied} onSave={onSave} onCopy={onCopy} />
       </div>
     </article>
@@ -243,7 +257,7 @@ function VideoResult(props: {
       <div className="media-info">
         <a className="media-title" href={result.url} target="_blank" rel="noreferrer">{result.title}</a>
         <div className="media-source">
-          {result.engine || "Video result"}
+          {getDisplaySource(result)}
           {result.views ? ` · ${result.views} views` : ""}
           {result.length ? ` · ${result.length}` : ""}
         </div>
