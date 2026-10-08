@@ -103,7 +103,47 @@ export async function GET(request: NextRequest) {
     const freshnessWeight = timeRange ? 1.35 : 1;
     const queryWordCount = queryTerms.length;
 
-    const ranked = results
+    type RankedResult = {
+      result: (typeof results)[number];
+      score: number;
+      originalIndex: number;
+      hostname: string;
+      intent: "official" | "docs" | "tutorial" | "community" | "news" | "academic" | "general";
+    };
+
+    const intentSignals = {
+      docs: /docs?|documentation|reference|api|developer|readme|\/reference\//i,
+      tutorial: /tutorial|guide|how[- ]to|learn|course|lesson|example|\/learn\//i,
+      community: /stackoverflow|reddit|forum|discussion|issue|questions?|answers?/i,
+      news: /news|\/news\//i,
+      academic: /arxiv|doi|research|paper|journal|study|proceedings?/i,
+      official: /official|\/official\//i,
+    };
+
+    const queryIntent = {
+      docs: /\b(docs?|documentation|api|reference|sdk)\b/i.test(cleanedQuery),
+      tutorial: /\b(how|tutorial|guide|learn|example|examples|course)\b/i.test(cleanedQuery),
+      community: /\b(error|errors|issue|problem|fix|broken|not working|stackoverflow|question)\b/i.test(cleanedQuery),
+      academic: /\b(paper|research|study|algorithm|academic|journal|thesis)\b/i.test(cleanedQuery),
+      news: /\b(news|latest|today|current|recent|update|updates)\b/i.test(cleanedQuery) || Boolean(timeRange),
+    };
+
+    function classifyIntent(result: (typeof results)[number], hostname: string): RankedResult["intent"] {
+      const title = String(result.title || "");
+      const content = String(result.content || "");
+      const url = String(result.url || "");
+      const haystack = `${title} ${url} ${content}`;
+
+      if (String(result.category || "").toLowerCase() === "news" || intentSignals.news.test(haystack)) return "news";
+      if (String(result.category || "").toLowerCase() === "science" || intentSignals.academic.test(haystack)) return "academic";
+      if (intentSignals.community.test(haystack)) return "community";
+      if (intentSignals.docs.test(haystack)) return "docs";
+      if (intentSignals.tutorial.test(haystack)) return "tutorial";
+      if (trustedDomains.has(hostname) || intentSignals.official.test(haystack)) return "official";
+      return "general";
+    }
+
+    const ranked: RankedResult[] = results
       .map((result, originalIndex) => {
         const title = String(result.title || "").toLowerCase();
         const content = String(result.content || "").toLowerCase();
@@ -115,6 +155,7 @@ export async function GET(request: NextRequest) {
         }
 
         let score = Math.max(0, 100 - originalIndex * 0.35);
+        const intent = classifyIntent(result, hostname);
 
         // Title matches matter much more than generic snippet matches.
         for (const phrase of phraseMatches) {
@@ -136,8 +177,8 @@ export async function GET(request: NextRequest) {
         if (trustedDomains.has(baseDomain)) score += 7;
 
         // Prefer fresh results when the user explicitly chose a time range.
-        if (freshnessWeight > 1 && result.publishedDate) {
-          const published = new Date(String(result.publishedDate)).getTime();
+        if (freshnessWeight > 1 && (result.publishedDate || result.pubdate)) {
+          const published = new Date(String(result.publishedDate || result.pubdate)).getTime();
           if (Number.isFinite(published)) {
             const ageDays = Math.max(0, (Date.now() - published) / 86400000);
             score += Math.max(0, 14 - Math.min(14, ageDays / 2)) * freshnessWeight;
@@ -174,10 +215,63 @@ export async function GET(request: NextRequest) {
           if (content.includes(excluded)) score -= 18;
         }
 
-        return { result, score, originalIndex };
+        // Match the user's apparent intent, but keep these boosts modest so
+        // generic relevance still wins when the signal is weak.
+        if (queryIntent.docs && intent === "docs") score += 14;
+        if (queryIntent.tutorial && intent === "tutorial") score += 14;
+        if (queryIntent.community && intent === "community") score += 14;
+        if (queryIntent.academic && intent === "academic") score += 16;
+        if (queryIntent.news && intent === "news") score += 12;
+
+        return { result, score, originalIndex, hostname, intent };
       })
-      .sort((a, b) => b.score - a.score || a.originalIndex - b.originalIndex)
-      .map(({ result }) => result);
+      .sort((a, b) => b.score - a.score || a.originalIndex - b.originalIndex);
+
+    // Broad searches should not become a wall of results from one domain.
+    // Explicit site: searches and highly constrained filetype: searches keep
+    // their natural source concentration.
+    const diversityEnabled = !siteTarget && !filetypeTarget;
+    const diversityStrength = String(categories || "").toLowerCase() === "news" ? 1.35 : 1;
+    const selected: RankedResult[] = [];
+    const remaining = [...ranked];
+    const domainCounts = new Map<string, number>();
+    const intentCounts = new Map<RankedResult["intent"], number>();
+
+    while (remaining.length) {
+      let bestIndex = 0;
+      let bestAdjustedScore = Number.NEGATIVE_INFINITY;
+
+      for (let i = 0; i < remaining.length; i += 1) {
+        const candidate = remaining[i];
+        const domainCount = domainCounts.get(candidate.hostname) || 0;
+        const intentCount = intentCounts.get(candidate.intent) || 0;
+
+        let adjustedScore = candidate.score;
+        if (diversityEnabled && candidate.hostname) {
+          if (domainCount === 1) adjustedScore -= 10 * diversityStrength;
+          else if (domainCount === 2) adjustedScore -= 20 * diversityStrength;
+          else if (domainCount >= 3) adjustedScore -= 32 * diversityStrength;
+        }
+
+        // For broad queries, gently prefer different result types too. This
+        // never overrides a strong relevance advantage.
+        if (diversityEnabled && queryWordCount <= 2 && intentCount >= 1) {
+          adjustedScore -= 4;
+        }
+
+        if (adjustedScore > bestAdjustedScore) {
+          bestAdjustedScore = adjustedScore;
+          bestIndex = i;
+        }
+      }
+
+      const [picked] = remaining.splice(bestIndex, 1);
+      selected.push(picked);
+      domainCounts.set(picked.hostname, (domainCounts.get(picked.hostname) || 0) + 1);
+      intentCounts.set(picked.intent, (intentCounts.get(picked.intent) || 0) + 1);
+    }
+
+    const rankedResults = selected.map(({ result }) => result);
 
     function normalizeText(value: unknown) {
       return String(value || "")
