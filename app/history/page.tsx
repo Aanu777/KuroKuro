@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import { useI18n } from "@/components/I18nProvider";
 
 type Entry = { id: string; query: string; createdAt: string };
 
@@ -20,6 +21,7 @@ function applyAutoClear(items: Entry[], mode: string) {
 }
 
 export default function HistoryPage() {
+  const { t } = useI18n();
   const [items, setItems] = useState<Entry[]>([]);
   const [enabled, setEnabled] = useState(true);
   const [autoClear, setAutoClear] = useState("off");
@@ -67,42 +69,42 @@ export default function HistoryPage() {
     <main className="page">
       <div className="page-inner">
         <div className="page-nav">
-          <Link href="/" className="back">← Kurokuro</Link>
-          <div className="page-nav-links"><Link href="/bookmarks" className="back">Bookmarks</Link><Link href="/settings" className="back">Settings</Link></div>
+          <Link href="/" className="back">← {t("back")}</Link>
+          <div className="page-nav-links"><Link href="/bookmarks" className="back">{t("bookmarks")}</Link><Link href="/settings" className="back">{t("settings")}</Link></div>
         </div>
-        <h1 className="page-title">Search history</h1>
-        <p className="page-subtitle">Your search history lives in this browser. It is never required for searching.</p>
+        <h1 className="page-title">{t("searchHistory")}</h1>
+        <p className="page-subtitle">{t("searchHistoryLives")}</p>
 
         <div className="panel page-panel">
           <div className="panel-row">
-            <div><div className="panel-label">Search history</div><div className="panel-help">Remember searches locally so they can be found and re-run later.</div></div>
+            <div><div className="panel-label">{t("searchHistory")}</div><div className="panel-help">{t("rememberSearches")}</div></div>
             <input type="checkbox" checked={enabled} onChange={(e) => toggle(e.target.checked)} />
           </div>
           <div className="panel-row">
-            <div><div className="panel-label">Automatic deletion</div><div className="panel-help">Older entries are removed when this page is opened.</div></div>
+            <div><div className="panel-label">{t("automaticDeletion")}</div><div className="panel-help">{t("olderRemoved")}</div></div>
             <select className="select" value={autoClear} onChange={(e) => changeAutoClear(e.target.value)} disabled={!enabled}>
-              <option value="off">Never</option><option value="7">After 7 days</option><option value="30">After 30 days</option><option value="90">After 90 days</option>
+              <option value="off">{t("never")}</option><option value="7">{t("after7")}</option><option value="30">{t("after30")}</option><option value="90">{t("after90")}</option>
             </select>
           </div>
         </div>
 
         {enabled && items.length > 0 && (
           <div className="history-toolbar">
-            <input className="text-field history-search" value={filter} onChange={(e) => setFilter(e.target.value)} placeholder="Filter history" aria-label="Filter history" />
-            <button className="small-action danger" onClick={clear}>Clear all</button>
+            <input className="text-field history-search" value={filter} onChange={(e) => setFilter(e.target.value)} placeholder={t("filterHistory")} aria-label={t("filterHistory")} />
+            <button className="small-action danger" onClick={clear}>{t("clearAll")}</button>
           </div>
         )}
 
         <div className="panel page-panel">
-          {!enabled ? <div className="empty">History is disabled. New searches will not be stored.</div> :
-           filtered.length === 0 ? <div className="empty">{items.length ? "No history matches that filter." : "No saved searches yet."}</div> :
+          {!enabled ? <div className="empty">{t("historyDisabled")}</div> :
+           filtered.length === 0 ? <div className="empty">{items.length ? t("noHistoryMatch") : t("noSavedSearches")}</div> :
            filtered.map((item) => (
             <div className="history-item" key={item.id}>
               <div className="history-main">
                 <Link className="history-query" href={`/search?q=${encodeURIComponent(item.query)}`}>{item.query}</Link>
                 <div className="history-date">{new Date(item.createdAt).toLocaleString()}</div>
               </div>
-              <button className="small-action danger" onClick={() => remove(item.id)}>Delete</button>
+              <button className="small-action danger" onClick={() => remove(item.id)}>{t("delete")}</button>
             </div>
           ))}
         </div>
