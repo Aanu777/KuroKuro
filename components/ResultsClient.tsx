@@ -284,15 +284,20 @@ export default function ResultsClient({
       try {
         const safeSearch = localStorage.getItem("kurokuro-safesearch") || "1";
         const language = localStorage.getItem("kurokuro-language") || "all";
-        const region = localStorage.getItem("kurokuro-region") || "all";
         const params = new URLSearchParams({
           q: query,
           categories: category,
           pageno: String(page),
           safesearch: safeSearch,
         });
-        if (language !== "all") params.set("language", language);
-        if (region !== "all") params.set("region", region);
+
+        // SearXNG accepts both the language API parameter and its :lang
+        // search syntax. The explicit syntax helps engines that do not fully
+        // honor the global language filter.
+        if (language !== "all") {
+          params.set("language", language);
+          params.set("q", `:${language} ${query}`);
+        }
         if (timeRange) params.set("time_range", timeRange);
 
         const response = await fetch(`/api/search?${params.toString()}`, {
