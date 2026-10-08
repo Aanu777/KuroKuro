@@ -12,5 +12,34 @@ search:
   safe_search: 1
   autocomplete: "duckduckgo"
 
+outgoing:
+  request_timeout: 2.5
+  max_request_timeout: 4.0
+  pool_connections: 100
+  enable_http2: true
+
+engines:
+  # Keep the fast/general sources useful for a local instance.
+  - name: bing
+    disabled: false
+    timeout: 2.5
+
+  # These were repeatedly timing out or returning CAPTCHA responses
+  # during local testing, so disabling them keeps the UI responsive.
+  - name: brave
+    disabled: true
+    timeout: 2.5
+
+  - name: duckduckgo
+    disabled: true
+    timeout: 2.5
+
+  # Not needed for normal web/image/video/news search.
+  - name: ahmia
+    disabled: true
+
+  - name: torch
+    disabled: true
+
 valkey:
   url: valkey://valkey:6379/0
