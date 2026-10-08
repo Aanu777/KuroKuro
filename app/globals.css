@@ -876,3 +876,34 @@ html[dir="rtl"] .lightbox-next {
   text-decoration-thickness: 1px;
   text-underline-offset: 2px;
 }
+
+
+/* Phase 10 — search quality v2 */
+.source-badge {
+  max-width: min(100%, 520px);
+}
+.source-badge-domain {
+  color: #686861;
+  font-weight: 600;
+}
+.source-badge-path {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--muted);
+}
+.result-content {
+  max-width: 760px;
+}
+.result-content .result-match {
+  font-weight: 650;
+}
+@media (max-width: 760px) {
+  .source-badge {
+    max-width: 100%;
+  }
+  .source-badge-path {
+    max-width: 48vw;
+  }
+}
