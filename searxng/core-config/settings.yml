@@ -15,8 +15,9 @@ search:
   autocomplete_min: 2
 
 outgoing:
-  request_timeout: 2.5
-  max_request_timeout: 4.0
+  # Keep the metasearch responsive while still allowing multiple sources.
+  request_timeout: 2.0
+  max_request_timeout: 3.0
   pool_connections: 100
   enable_http2: true
 
@@ -24,7 +25,7 @@ engines:
   # Keep the fast/general sources useful for a local instance.
   - name: bing
     disabled: false
-    timeout: 2.5
+    timeout: 2.0
 
   # These were repeatedly timing out or returning CAPTCHA responses
   # during local testing, so disabling them keeps the UI responsive.
