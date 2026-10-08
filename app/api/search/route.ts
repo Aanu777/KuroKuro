@@ -93,6 +93,16 @@ export async function GET(request: NextRequest) {
     const siteTarget = siteMatch?.[1]?.toLowerCase().replace(/^www\./, "");
     const filetypeTarget = filetypeMatch?.[1]?.toLowerCase().replace(/^\./, "");
 
+    const trustedDomains = new Set([
+      "wikipedia.org", "github.com", "stackoverflow.com", "developer.mozilla.org",
+      "docs.python.org", "nodejs.org", "npmjs.com", "arxiv.org", "ieee.org",
+      "acm.org", "microsoft.com", "apple.com", "google.com", "cloudflare.com",
+      "mozilla.org", "linux.org", "ubuntu.com", "redhat.com",
+    ]);
+
+    const freshnessWeight = timeRange ? 1.35 : 1;
+    const queryWordCount = queryTerms.length;
+
     const ranked = results
       .map((result, originalIndex) => {
         const title = String(result.title || "").toLowerCase();
@@ -106,9 +116,32 @@ export async function GET(request: NextRequest) {
 
         let score = Math.max(0, 100 - originalIndex * 0.35);
 
+        // Title matches matter much more than generic snippet matches.
         for (const phrase of phraseMatches) {
-          if (title.includes(phrase)) score += 42;
-          if (content.includes(phrase)) score += 14;
+          if (title.includes(phrase)) score += 48;
+          if (content.includes(phrase)) score += 12;
+        }
+
+        // Reward complete query coverage and exact title starts.
+        const matchedTerms = queryTerms.filter((term) => title.includes(term)).length;
+        if (queryWordCount > 0) {
+          score += (matchedTerms / queryWordCount) * 28;
+          if (matchedTerms === queryWordCount) score += 18;
+        }
+        if (queryTerms.length > 0 && title.startsWith(queryTerms[0])) score += 10;
+
+        // Give established technical/reference domains a modest boost without
+        // overwhelming actual relevance.
+        const baseDomain = hostname.replace(/^.*?([^.]+\.[^.]+)$/, "$1");
+        if (trustedDomains.has(baseDomain)) score += 7;
+
+        // Prefer fresh results when the user explicitly chose a time range.
+        if (freshnessWeight > 1 && result.publishedDate) {
+          const published = new Date(String(result.publishedDate)).getTime();
+          if (Number.isFinite(published)) {
+            const ageDays = Math.max(0, (Date.now() - published) / 86400000);
+            score += Math.max(0, 14 - Math.min(14, ageDays / 2)) * freshnessWeight;
+          }
         }
 
         if (siteTarget) {
@@ -124,8 +157,12 @@ export async function GET(request: NextRequest) {
 
         for (const term of queryTerms) {
           if (title.includes(term)) score += 12;
-          if (content.includes(term)) score += 2;
+          if (content.includes(term)) score += 3;
         }
+
+        // Penalize results that only match one term in a multi-term query.
+        if (queryTerms.length >= 3 && matchedTerms === 0) score -= 12;
+        if (queryTerms.length >= 3 && matchedTerms === 1) score -= 5;
 
         if (queryTerms.length > 1) {
           const titleTerms = queryTerms.filter((term) => title.includes(term)).length;
