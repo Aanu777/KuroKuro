@@ -151,6 +151,7 @@ function ResultActions({
   onSave: () => void;
   onCopy: () => void;
 }) {
+  const { t } = useI18n();
   return (
     <div className="result-actions">
       <button className="small-action" onClick={onSave}>{saved ? t("saved") : t("save")}</button>
