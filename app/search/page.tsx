@@ -1,4 +1,5 @@
 import ResultsClient from "@/components/ResultsClient";
+import SearchEmptyState from "@/components/SearchEmptyState";
 import type { SearchCategory } from "@/lib/search";
 
 export default async function SearchPage({
@@ -18,7 +19,7 @@ export default async function SearchPage({
   const allowedRanges = ["", "day", "week", "month", "year"];
   const timeRange = allowedRanges.includes(params.time_range || "") ? params.time_range || "" : "";
 
-  if (!query) return <div className="state">No search query.</div>;
+  if (!query) return <SearchEmptyState />;
 
   return (
     <ResultsClient
