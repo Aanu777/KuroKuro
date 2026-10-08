@@ -494,7 +494,6 @@ export default function ResultsClient({
         if (timeRange) params.set("time_range", timeRange);
 
         const cacheKey = `kurokuro-search-${params.toString()}`;
-        let showedCached = false;
 
         // Show a very recent identical search immediately, then refresh it in
         // the background. This makes repeat searches feel instant without
@@ -505,7 +504,6 @@ export default function ResultsClient({
             const parsed = JSON.parse(cached) as { savedAt: number; data: SearchResponse };
             if (Date.now() - parsed.savedAt < 60_000 && parsed.data?.results) {
               setData(parsed.data);
-              showedCached = true;
             } else {
               sessionStorage.removeItem(cacheKey);
             }
