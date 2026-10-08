@@ -4,15 +4,13 @@ import type { SearchResponse } from "@/lib/search";
 export const dynamic = "force-dynamic";
 
 const SEARXNG_URL = process.env.SEARXNG_URL || "http://localhost:8080";
-const SEARCH_TIMEOUT_MS = 6500;
+const SEARCH_TIMEOUT_MS = 5500;
 
 export async function GET(request: NextRequest) {
   const incoming = request.nextUrl.searchParams;
   const q = incoming.get("q")?.trim();
 
-  if (!q) {
-    return NextResponse.json({ error: "Missing search query." }, { status: 400 });
-  }
+  if (!q) return NextResponse.json({ error: "Missing search query." }, { status: 400 });
 
   const params = new URLSearchParams({
     q,
@@ -28,53 +26,32 @@ export async function GET(request: NextRequest) {
   if (categories) params.set("categories", categories);
   if (language) params.set("language", language);
   if (timeRange) params.set("time_range", timeRange);
-
-  // Keep image loading on the Kurokuro/SearXNG path instead of making
-  // the browser contact every image host directly.
-  if (categories === "images" || categories === "videos") {
-    params.set("image_proxy", "1");
-  }
+  if (categories === "images" || categories === "videos") params.set("image_proxy", "1");
 
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), SEARCH_TIMEOUT_MS);
 
   try {
-    const response = await fetch(
-      `${SEARXNG_URL.replace(/\/$/, "")}/search?${params.toString()}`,
-      {
-        headers: {
-          Accept: "application/json",
-          "Accept-Encoding": "gzip, deflate, br",
-        },
-        signal: controller.signal,
-        cache: "no-store",
-      },
-    );
+    const response = await fetch(`${SEARXNG_URL.replace(/\/$/, "")}/search?${params.toString()}`, {
+      headers: { Accept: "application/json", "Accept-Encoding": "gzip, deflate, br" },
+      signal: controller.signal,
+      cache: "no-store",
+    });
 
     if (!response.ok) {
       const detail = await response.text().catch(() => "");
-      return NextResponse.json(
-        { error: `SearXNG returned ${response.status}.`, detail: detail.slice(0, 500) },
-        { status: 502 },
-      );
+      return NextResponse.json({ error: `SearXNG returned ${response.status}.`, detail: detail.slice(0, 500) }, { status: 502 });
     }
 
     const data = (await response.json()) as SearchResponse;
-
-    // Normalize and deduplicate results before they reach the UI. SearXNG can
-    // return the same canonical page from several engines, especially for
-    // general/news searches.
     const seen = new Set<string>();
     const results = (data.results || []).filter((result) => {
       const raw = typeof result.url === "string" ? result.url : "";
       if (!raw) return false;
-
       try {
         const url = new URL(raw);
         url.hash = "";
-        for (const key of ["utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content", "fbclid", "gclid"]) {
-          url.searchParams.delete(key);
-        }
+        for (const key of ["utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content", "fbclid", "gclid"]) url.searchParams.delete(key);
         const canonical = url.toString().replace(/\/$/, "").toLowerCase();
         if (seen.has(canonical)) return false;
         seen.add(canonical);
@@ -90,26 +67,17 @@ export async function GET(request: NextRequest) {
     const normalized: SearchResponse = {
       ...data,
       results,
-      number_of_results: typeof data.number_of_results === "number"
-        ? data.number_of_results
-        : results.length,
+      number_of_results: typeof data.number_of_results === "number" ? data.number_of_results : results.length,
     };
 
     return NextResponse.json(normalized, {
-      headers: {
-        "Cache-Control": "private, max-age=15, stale-while-revalidate=45",
-      },
+      headers: { "Cache-Control": "private, max-age=15, stale-while-revalidate=45" },
     });
   } catch (error) {
     const timedOut = error instanceof DOMException && error.name === "AbortError";
-    return NextResponse.json(
-      {
-        error: timedOut
-          ? "Search timed out. Try again or use a more specific query."
-          : "Kurokuro could not reach SearXNG. Start the search backend and try again.",
-      },
-      { status: timedOut ? 504 : 503 },
-    );
+    return NextResponse.json({
+      error: timedOut ? "Search timed out. Try again or use a more specific query." : "Kurokuro could not reach SearXNG. Start the search backend and try again.",
+    }, { status: timedOut ? 504 : 503 });
   } finally {
     clearTimeout(timeout);
   }
