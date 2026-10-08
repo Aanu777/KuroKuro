@@ -493,9 +493,28 @@ export default function ResultsClient({
         }
         if (timeRange) params.set("time_range", timeRange);
 
+        const cacheKey = `kurokuro-search-${params.toString()}`;
+        let showedCached = false;
+
+        // Show a very recent identical search immediately, then refresh it in
+        // the background. This makes repeat searches feel instant without
+        // serving stale results indefinitely.
+        try {
+          const cached = sessionStorage.getItem(cacheKey);
+          if (cached) {
+            const parsed = JSON.parse(cached) as { savedAt: number; data: SearchResponse };
+            if (Date.now() - parsed.savedAt < 60_000 && parsed.data?.results) {
+              setData(parsed.data);
+              showedCached = true;
+            } else {
+              sessionStorage.removeItem(cacheKey);
+            }
+          }
+        } catch {
+          // Storage can be unavailable in private/restricted browser contexts.
+        }
+
         const response = await fetch(`/api/search?${params.toString()}`, {
-          // Allow the browser to reuse a recent identical search; the API
-          // response is still private and short-lived.
           cache: "default",
           signal: controller.signal,
         });
@@ -504,6 +523,12 @@ export default function ResultsClient({
         if (!alive) return;
 
         setData(payload);
+
+        try {
+          sessionStorage.setItem(cacheKey, JSON.stringify({ savedAt: Date.now(), data: payload }));
+        } catch {
+          // Ignore quota/storage errors; network search still works normally.
+        }
 
         const enabled = localStorage.getItem("kurokuro-history-enabled") !== "false";
         if (enabled) {
