@@ -260,6 +260,19 @@ export default function ResultsClient({
   const [playing, setPlaying] = useState<string | null>(null);
 
   useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      const typing = target?.tagName === "INPUT" || target?.tagName === "TEXTAREA" || target?.isContentEditable;
+      if ((event.key === "/" && !typing) || ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k")) {
+        event.preventDefault();
+        document.querySelector<HTMLInputElement>(".results-header .search-input")?.focus();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
+  useEffect(() => {
     const controller = new AbortController();
     let alive = true;
 
@@ -269,12 +282,17 @@ export default function ResultsClient({
       setPlaying(null);
 
       try {
+        const safeSearch = localStorage.getItem("kurokuro-safesearch") || "1";
+        const language = localStorage.getItem("kurokuro-language") || "all";
+        const region = localStorage.getItem("kurokuro-region") || "all";
         const params = new URLSearchParams({
           q: query,
           categories: category,
           pageno: String(page),
-          safesearch: "1",
+          safesearch: safeSearch,
         });
+        if (language !== "all") params.set("language", language);
+        if (region !== "all") params.set("region", region);
         if (timeRange) params.set("time_range", timeRange);
 
         const response = await fetch(`/api/search?${params.toString()}`, {
