@@ -24,12 +24,10 @@ export async function GET(request: NextRequest) {
   const categories = incoming.get("categories");
   const language = incoming.get("language");
   const timeRange = incoming.get("time_range");
-  const region = incoming.get("region");
 
   if (categories) params.set("categories", categories);
   if (language) params.set("language", language);
   if (timeRange) params.set("time_range", timeRange);
-  if (region && region !== "all") params.set("region", region);
 
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), SEARCH_TIMEOUT_MS);
