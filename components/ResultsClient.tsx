@@ -109,6 +109,45 @@ function getPublishedDate(result: SearchResult) {
   return Number.isNaN(date.getTime()) ? String(value) : date.toLocaleDateString();
 }
 
+function HighlightedText({ text, query }: { text: string; query: string }) {
+  const terms = Array.from(
+    new Set(
+      query
+        .replace(/site:[^\\s]+/gi, " ")
+        .replace(/filetype:[^\\s]+/gi, " ")
+        .replace(/(?:^|\\s)-[a-z0-9][\\w-]*/gi, " ")
+        .replace(/"([^"]+)"/g, "$1")
+        .split(/\\s+/)
+        .map((term) => term.replace(/^[^a-z0-9]+|[^a-z0-9]+$/gi, ""))
+        .filter((term) => term.length >= 2),
+    ),
+  );
+
+  if (!text || terms.length === 0) return <>{text}</>;
+
+  const escaped = terms.map((term) => term.replace(/[.*+?^$()|[\\]\\\\]/g, "\\\\function getPublishedDate(result: SearchResult) {
+  const value = result.publishedDate || result.pubdate;
+  if (!value) return "";
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? String(value) : date.toLocaleDateString();
+}
+"));
+  const pattern = new RegExp("(" + escaped.join("|") + ")", "gi");
+  const parts = text.split(pattern);
+
+  return (
+    <>
+      {parts.map((part, index) =>
+        terms.some((term) => term.toLowerCase() === part.toLowerCase()) ? (
+          <mark className="result-match" key={part + "-" + index}>{part}</mark>
+        ) : (
+          <span key={part + "-" + index}>{part}</span>
+        ),
+      )}
+    </>
+  );
+}
+
 function MediaImage({
   result,
   alt,
@@ -181,8 +220,8 @@ function WebResult(props: {
     <article className="result result-web">
       <div className="result-body">
         <div className="result-source-line"><SourceBadge result={result} /></div>
-        <a className="result-title" href={result.url} target="_blank" rel="noreferrer">{result.title}</a>
-        {result.content && <div className="result-content">{result.content}</div>}
+        <a className="result-title" href={result.url} target="_blank" rel="noreferrer"><HighlightedText text={result.title} query={query} /></a>
+        {result.content && <div className="result-content"><HighlightedText text={result.content} query={query} /></div>}
         <div className="result-subline">
           {result.engine && <span>via {result.engine}</span>}
           {result.author && <span>by {result.author}</span>}
@@ -222,7 +261,7 @@ function NewsResult(props: {
           <SourceBadge result={result} />
           {getPublishedDate(result) && <span>{getPublishedDate(result)}</span>}
         </div>
-        <a className="news-title" href={result.url} target="_blank" rel="noreferrer">{result.title}</a>
+        <a className="news-title" href={result.url} target="_blank" rel="noreferrer"><HighlightedText text={result.title} query={query} /></a>
         {result.content && <div className="result-content">{result.content}</div>}
         <ResultActions result={result} query={query} saved={saved} copied={copied} onSave={onSave} onCopy={onCopy} />
       </div>
