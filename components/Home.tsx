@@ -1,9 +1,12 @@
+"use client";
+
 import Link from "next/link";
 import SearchBox from "@/components/SearchBox";
 import { useI18n } from "@/components/I18nProvider";
-import { useEffect } from "react";
 
 export default function Home() {
+  const { t } = useI18n();
+
   return (
     <div className="page-shell">
       <main className="home-main">
