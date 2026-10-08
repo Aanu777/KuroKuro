@@ -316,7 +316,7 @@ export async function GET(request: NextRequest) {
       return (start > 0 ? "… " : "") + text.slice(start, end).trim() + (end < text.length ? " …" : "");
     }
 
-    const withSnippets = ranked.map((result) => {
+    const withSnippets = rankedResults.map((result) => {
       if (!["general", "news", "files", "science"].includes(String(result.category || ""))) return result;
       return {
         ...result,
