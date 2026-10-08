@@ -66,6 +66,59 @@ export default function SearchBox({
         setSuggestions(next);
         setSelected(-1);
         setOpen(next.length > 0);
+
+        // Predict the most likely next search while the user is still reading
+        // suggestions. The result lands in the same short-lived browser cache
+        // used by ResultsClient, so choosing that suggestion can feel instant.
+        if (next.length > 0) {
+          const predictedQuery = next[0].trim();
+          const language = localStorage.getItem("kurokuro-language") || "all";
+          const safeSearch = localStorage.getItem("kurokuro-safesearch") || "1";
+          const params = new URLSearchParams({
+            q: language !== "all" ? `:${language} ${predictedQuery}` : predictedQuery,
+            categories: category,
+            pageno: "1",
+            safesearch: safeSearch,
+          });
+          if (language !== "all") params.set("language", language);
+
+          const cacheKey = `kurokuro-search-${params.toString()}`;
+          const cached = sessionStorage.getItem(cacheKey);
+          let fresh = false;
+
+          if (cached) {
+            try {
+              const parsed = JSON.parse(cached) as { savedAt?: number; data?: { results?: unknown[] } };
+              fresh = Boolean(
+                parsed.savedAt &&
+                Date.now() - parsed.savedAt < 60_000 &&
+                parsed.data?.results,
+              );
+            } catch {
+              sessionStorage.removeItem(cacheKey);
+            }
+          }
+
+          if (!fresh) {
+            window.setTimeout(async () => {
+              try {
+                const response = await fetch(`/api/search?${params.toString()}`, {
+                  cache: "default",
+                });
+                if (!response.ok) return;
+                const data = await response.json();
+                if (!Array.isArray(data?.results)) return;
+
+                sessionStorage.setItem(
+                  cacheKey,
+                  JSON.stringify({ savedAt: Date.now(), data }),
+                );
+              } catch {
+                // Predictive fetching is optional; never interrupt autocomplete.
+              }
+            }, 120);
+          }
+        }
       } catch (error) {
         if (error instanceof DOMException && error.name === "AbortError") return;
         setSuggestions([]);
