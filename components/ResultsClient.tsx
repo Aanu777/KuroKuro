@@ -440,6 +440,11 @@ export default function ResultsClient({
   const [safeSearch, setSafeSearch] = useState("1");
 
   useEffect(() => {
+    const stored = localStorage.getItem("kurokuro-safesearch");
+    if (stored === "0" || stored === "1" || stored === "2") setSafeSearch(stored);
+  }, []);
+
+  useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       const target = event.target as HTMLElement | null;
       const typing = target?.tagName === "INPUT" || target?.tagName === "TEXTAREA" || target?.isContentEditable;
