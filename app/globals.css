@@ -446,3 +446,50 @@ html[data-theme="dark"] .select, html[data-theme="dark"] .text-field, html[data-
 }
 .suggestion-help span { display: inline-flex; align-items: center; gap: 3px; }
 .suggestion-help svg + svg { margin-left: -3px; }
+
+
+/* Power search */
+.power-search {
+  margin: 18px 0 10px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+}
+.power-search summary {
+  cursor: pointer;
+  padding: 10px 13px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  list-style: none;
+}
+.power-search summary::-webkit-details-marker { display: none; }
+.power-search summary::after {
+  content: "+";
+  float: right;
+  color: var(--muted);
+}
+.power-search[open] summary::after { content: "−"; }
+.power-search-body {
+  padding: 0 13px 13px;
+  border-top: 1px solid var(--border);
+}
+.power-search-copy {
+  padding: 10px 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.55;
+}
+.power-search-examples {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+.power-search-examples code {
+  padding: 5px 7px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface-muted);
+  color: var(--text);
+  font-size: 11px;
+}
