@@ -29,6 +29,12 @@ export async function GET(request: NextRequest) {
   if (language) params.set("language", language);
   if (timeRange) params.set("time_range", timeRange);
 
+  // Keep image loading on the Kurokuro/SearXNG path instead of making
+  // the browser contact every image host directly.
+  if (categories === "images" || categories === "videos") {
+    params.set("image_proxy", "1");
+  }
+
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), SEARCH_TIMEOUT_MS);
 
