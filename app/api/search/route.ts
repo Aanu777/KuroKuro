@@ -64,10 +64,55 @@ export async function GET(request: NextRequest) {
       }
     });
 
+    // Re-rank the aggregated results using lightweight local relevance signals.
+    // SearXNG still decides which engines contribute; Kurokuro only improves the
+    // final ordering so strong title/domain matches rise above noisy matches.
+    const normalizedQuery = q
+      .replace(/^:[a-z-]+\\s+/i, "")
+      .trim()
+      .toLowerCase();
+
+    const exactPhrase = normalizedQuery.replace(/^"(.*)"$/, "$1").trim();
+    const queryTerms = exactPhrase
+      .split(/\\s+/)
+      .map((term) => term.replace(/^[^a-z0-9]+|[^a-z0-9]+$/gi, ""))
+      .filter((term) => term.length >= 2);
+
+    const ranked = results
+      .map((result, originalIndex) => {
+        const title = String(result.title || "").toLowerCase();
+        const content = String(result.content || "").toLowerCase();
+        let hostname = "";
+        try {
+          hostname = new URL(result.url).hostname.toLowerCase().replace(/^www\\./, "");
+        } catch {
+          hostname = "";
+        }
+
+        let score = Math.max(0, 100 - originalIndex * 0.35);
+
+        if (exactPhrase && title.includes(exactPhrase)) score += 38;
+        if (exactPhrase && content.includes(exactPhrase)) score += 12;
+        if (normalizedQuery && hostname.includes(normalizedQuery.replace(/\\s+/g, ""))) score += 16;
+
+        for (const term of queryTerms) {
+          if (title.includes(term)) score += 11;
+          if (content.includes(term)) score += 2;
+          if (hostname.includes(term)) score += 5;
+        }
+
+        const titleTerms = queryTerms.filter((term) => title.includes(term)).length;
+        if (queryTerms.length > 1 && titleTerms === queryTerms.length) score += 20;
+
+        return { result, score, originalIndex };
+      })
+      .sort((a, b) => b.score - a.score || a.originalIndex - b.originalIndex)
+      .map(({ result }) => result);
+
     const normalized: SearchResponse = {
       ...data,
-      results,
-      number_of_results: typeof data.number_of_results === "number" ? data.number_of_results : results.length,
+      results: ranked,
+      number_of_results: typeof data.number_of_results === "number" ? data.number_of_results : ranked.length,
     };
 
     return NextResponse.json(normalized, {
