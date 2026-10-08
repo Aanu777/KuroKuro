@@ -10,6 +10,14 @@ const categories: Array<{ key: string; value: SearchCategory }> = [
   { key: "news", value: "news" }, { key: "maps", value: "map" }, { key: "files", value: "files" }, { key: "science", value: "science" },
 ];
 
+const bangShortcuts = [
+  { bang: "!gh", label: "GitHub", description: "Search repositories and code" },
+  { bang: "!mdn", label: "MDN", description: "Search web documentation" },
+  { bang: "!so", label: "Stack Overflow", description: "Search programming questions" },
+  { bang: "!npm", label: "npm", description: "Search npm packages" },
+  { bang: "!wiki", label: "Wikipedia", description: "Search Wikipedia" },
+];
+
 export default function SearchBox({
   initialQuery = "",
   initialCategory = "general",
@@ -55,14 +63,32 @@ export default function SearchBox({
     const controller = new AbortController();
     const timer = window.setTimeout(async () => {
       try {
+        const bangMatch = clean.match(/(^|\s)(![a-z]+)\s*$/i);
+        const bangPrefix = bangMatch?.[2]?.toLowerCase() || "";
+        const localBangs = bangPrefix
+          ? bangShortcuts.filter((item) => item.bang.startsWith(bangPrefix)).map((item) => item.bang)
+          : [];
+
         const response = await fetch(`/api/suggestions?q=${encodeURIComponent(clean)}`, {
           signal: controller.signal,
           cache: "no-store",
         });
         const payload = await response.json();
-        const next = Array.isArray(payload.suggestions)
-          ? payload.suggestions.filter((item: unknown): item is string => typeof item === "string").slice(0, 8)
+        const remote = Array.isArray(payload.suggestions)
+          ? payload.suggestions.filter((item: unknown): item is string => typeof item === "string")
           : [];
+
+        const merged: string[] = [];
+        for (const item of [...localBangs, ...remote]) {
+          const normalized = item.replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim();
+          if (!normalized || normalized.toLowerCase() === clean.toLowerCase()) continue;
+          if (!merged.some((existing) => existing.toLowerCase() === normalized.toLowerCase())) {
+            merged.push(normalized);
+          }
+          if (merged.length >= 8) break;
+        }
+
+        const next = merged;
         setSuggestions(next);
         setSelected(-1);
         setOpen(next.length > 0);
