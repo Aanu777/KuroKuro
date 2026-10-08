@@ -4,6 +4,7 @@ server:
   secret_key: "change-this-secret-key-before-public-deployment"
   bind_address: "0.0.0.0"
   port: 8080
+  image_proxy: true
 
 search:
   formats:
