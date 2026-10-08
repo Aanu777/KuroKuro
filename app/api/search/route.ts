@@ -61,7 +61,41 @@ export async function GET(request: NextRequest) {
 
     const data = (await response.json()) as SearchResponse;
 
-    return NextResponse.json(data, {
+    // Normalize and deduplicate results before they reach the UI. SearXNG can
+    // return the same canonical page from several engines, especially for
+    // general/news searches.
+    const seen = new Set<string>();
+    const results = (data.results || []).filter((result) => {
+      const raw = typeof result.url === "string" ? result.url : "";
+      if (!raw) return false;
+
+      try {
+        const url = new URL(raw);
+        url.hash = "";
+        for (const key of ["utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content", "fbclid", "gclid"]) {
+          url.searchParams.delete(key);
+        }
+        const canonical = url.toString().replace(/\/$/, "").toLowerCase();
+        if (seen.has(canonical)) return false;
+        seen.add(canonical);
+        return true;
+      } catch {
+        const fallback = raw.replace(/\/$/, "").toLowerCase();
+        if (seen.has(fallback)) return false;
+        seen.add(fallback);
+        return true;
+      }
+    });
+
+    const normalized: SearchResponse = {
+      ...data,
+      results,
+      number_of_results: typeof data.number_of_results === "number"
+        ? data.number_of_results
+        : results.length,
+    };
+
+    return NextResponse.json(normalized, {
       headers: {
         "Cache-Control": "private, max-age=15, stale-while-revalidate=45",
       },
