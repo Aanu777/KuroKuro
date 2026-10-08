@@ -289,7 +289,7 @@ function VideoResult(props: {
             allowFullScreen
           />
         ) : (
-          <button className="video-poster" onClick={embed ? onPlay : undefined} aria-label={embed ? `Play ${result.title}` : "Open video"}>
+          <button className="video-poster" onClick={embed ? onPlay : () => window.open(result.url, "_blank", "noopener,noreferrer")} aria-label={embed ? `Play ${result.title}` : "Open video"}>
             {image ? <MediaImage result={result} alt="" /> : (
               <div className="media-placeholder"><Play size={28} /></div>
             )}
