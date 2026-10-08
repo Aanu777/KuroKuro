@@ -82,6 +82,21 @@ function getImageUrl(result: SearchResult) {
   return getImageCandidates(result)[0] || null;
 }
 
+function getImageAspect(result: SearchResult) {
+  const width = Number(result.width);
+  const height = Number(result.height);
+  if (width > 0 && height > 0) return width / height;
+  return 4 / 3;
+}
+
+function getMediaLabel(result: SearchResult) {
+  return result.img_format ? String(result.img_format).toUpperCase() : "";
+}
+
+function getVideoHost(result: SearchResult) {
+  return getHostname(result.url) || getDisplaySource(result);
+}
+
 function getVideoEmbedUrl(result: SearchResult) {
   return isHttpUrl(result.iframe_src) ? result.iframe_src : null;
 }
@@ -226,14 +241,14 @@ function ImageResult(props: {
 
   return (
     <article className="media-card image-card">
-      <a className="media-preview image-preview" href={result.url} target="_blank" rel="noreferrer">
+      <a className="media-preview image-preview" style={{ aspectRatio: getImageAspect(result) }} href={result.url} target="_blank" rel="noreferrer">
         {image ? <MediaImage result={result} alt={result.title} /> : (
           <div className="media-placeholder"><ImageIcon size={24} /></div>
         )}
       </a>
       <div className="media-info">
         <a className="media-title" href={result.url} target="_blank" rel="noreferrer">{result.title}</a>
-        <div className="media-source"><SourceBadge result={result} />{result.resolution ? ` · ${result.resolution}` : ""}</div>
+        <div className="media-source"><SourceBadge result={result} />{result.resolution ? ` · ${result.resolution}` : ""}{getMediaLabel(result) ? ` · ${getMediaLabel(result)}` : ""}</div>
         <ResultActions result={result} query={query} saved={saved} copied={copied} onSave={onSave} onCopy={onCopy} />
       </div>
     </article>
@@ -271,6 +286,7 @@ function VideoResult(props: {
               <div className="media-placeholder"><Play size={28} /></div>
             )}
             <span className="play-button"><Play size={17} fill="currentColor" /></span>
+            {result.length && <span className="video-duration">{result.length}</span>}
           </button>
         )}
       </div>
@@ -279,7 +295,10 @@ function VideoResult(props: {
         <div className="media-source">
           <SourceBadge result={result} />
           {result.views ? ` · ${result.views} views` : ""}
-          {result.length ? ` · ${result.length}` : ""}
+        </div>
+        <div className="video-secondary-meta">
+          <span>{getVideoHost(result)}</span>
+          {result.length && <span>{result.length}</span>}
         </div>
         {result.content && <div className="media-description">{result.content}</div>}
         <ResultActions result={result} query={query} saved={saved} copied={copied} onSave={onSave} onCopy={onCopy} />
