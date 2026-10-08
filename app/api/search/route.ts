@@ -142,10 +142,101 @@ export async function GET(request: NextRequest) {
       .sort((a, b) => b.score - a.score || a.originalIndex - b.originalIndex)
       .map(({ result }) => result);
 
+    function normalizeText(value: unknown) {
+      return String(value || "")
+        .toLowerCase()
+        .replace(/https?:\/\/\S+/g, " ")
+        .replace(/[^a-z0-9]+/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+    }
+
+    function makeSmartSnippet(content: unknown, terms: string[], phrases: string[]) {
+      const text = String(content || "").replace(/\s+/g, " ").trim();
+      if (!text || text.length <= 220) return text;
+
+      const lower = text.toLowerCase();
+      const anchors = [...phrases, ...terms]
+        .map((value) => value.trim().toLowerCase())
+        .filter(Boolean)
+        .sort((a, b) => b.length - a.length);
+
+      const hit = anchors
+        .map((anchor) => ({ anchor, index: lower.indexOf(anchor) }))
+        .filter((item) => item.index >= 0)
+        .sort((a, b) => a.index - b.index)[0];
+
+      const center = hit?.index ?? 0;
+      const windowSize = 220;
+      let start = Math.max(0, center - 70);
+      let end = Math.min(text.length, start + windowSize);
+
+      if (end - start < windowSize) start = Math.max(0, end - windowSize);
+
+      if (start > 0) {
+        const nextSpace = text.indexOf(" ", start);
+        if (nextSpace > start && nextSpace < start + 35) start = nextSpace + 1;
+      }
+      if (end < text.length) {
+        const previousSpace = text.lastIndexOf(" ", end);
+        if (previousSpace > start + 160) end = previousSpace;
+      }
+
+      return (start > 0 ? "… " : "") + text.slice(start, end).trim() + (end < text.length ? " …" : "");
+    }
+
+    const withSnippets = ranked.map((result) => {
+      if (!["general", "news", "files", "science"].includes(String(result.category || ""))) return result;
+      return {
+        ...result,
+        content: makeSmartSnippet(result.content, queryTerms, phraseMatches),
+      };
+    });
+
+    // Collapse near-duplicates that escaped URL canonicalization. We only
+    // compare results from the same hostname, so different sites are preserved.
+    const duplicateBuckets = new Map<string, Array<{ title: string; content: string }>>();
+    const deduped = withSnippets.filter((result) => {
+      let hostname = "";
+      try {
+        hostname = new URL(result.url).hostname.toLowerCase().replace(/^www\./, "");
+      } catch {
+        return true;
+      }
+
+      const title = normalizeText(result.title);
+      const content = normalizeText(result.content).slice(0, 320);
+      if (!hostname || !title) return true;
+
+      const bucket = duplicateBuckets.get(hostname) || [];
+      const isDuplicate = bucket.some((existing) => {
+        if (existing.title === title) return true;
+
+        const a = new Set(title.split(" ").filter(Boolean));
+        const b = new Set(existing.title.split(" ").filter(Boolean));
+        const intersection = [...a].filter((word) => b.has(word)).length;
+        const titleSimilarity = intersection / Math.max(1, Math.min(a.size, b.size));
+        if (titleSimilarity >= 0.9) return true;
+
+        if (!content || !existing.content) return false;
+        const contentWords = new Set(content.split(" ").filter((word) => word.length > 3));
+        const existingWords = new Set(existing.content.split(" ").filter((word) => word.length > 3));
+        if (contentWords.size < 8 || existingWords.size < 8) return false;
+
+        const overlap = [...contentWords].filter((word) => existingWords.has(word)).length;
+        return overlap / Math.max(1, Math.min(contentWords.size, existingWords.size)) >= 0.88;
+      });
+
+      if (isDuplicate) return false;
+      bucket.push({ title, content });
+      duplicateBuckets.set(hostname, bucket);
+      return true;
+    });
+
     const normalized: SearchResponse = {
       ...data,
-      results: ranked,
-      number_of_results: typeof data.number_of_results === "number" ? data.number_of_results : ranked.length,
+      results: deduped,
+      number_of_results: deduped.length,
     };
 
     return NextResponse.json(normalized, {
