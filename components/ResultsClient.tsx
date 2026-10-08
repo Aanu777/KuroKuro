@@ -4,6 +4,8 @@ import Link from "next/link";
 import {
   Bookmark,
   Check,
+  ChevronLeft,
+  ChevronRight,
   Copy,
   ExternalLink,
   History,
@@ -21,6 +23,14 @@ const categories: Array<{ label: string; value: SearchCategory }> = [
   { label: "News", value: "news" },
 ];
 
+const timeRanges = [
+  { label: "Any time", value: "" },
+  { label: "Past day", value: "day" },
+  { label: "Past week", value: "week" },
+  { label: "Past month", value: "month" },
+  { label: "Past year", value: "year" },
+];
+
 type HistoryEntry = { id: string; query: string; createdAt: string };
 type BookmarkEntry = { id: string; title: string; url: string; query: string; createdAt: string };
 
@@ -29,8 +39,7 @@ function isHttpUrl(value: unknown): value is string {
 }
 
 function getImageUrl(result: SearchResult) {
-  const candidates = [result.thumbnail_src, result.thumbnail, result.img_src];
-  return candidates.find(isHttpUrl) || null;
+  return [result.thumbnail_src, result.thumbnail, result.img_src].find(isHttpUrl) || null;
 }
 
 function getVideoEmbedUrl(result: SearchResult) {
@@ -73,14 +82,7 @@ function ResultActions({
   );
 }
 
-function WebResult({
-  result,
-  query,
-  saved,
-  copied,
-  onSave,
-  onCopy,
-}: {
+function WebResult(props: {
   result: SearchResult;
   query: string;
   saved: boolean;
@@ -88,6 +90,7 @@ function WebResult({
   onSave: () => void;
   onCopy: () => void;
 }) {
+  const { result, query, saved, copied, onSave, onCopy } = props;
   const image = getImageUrl(result);
 
   return (
@@ -111,14 +114,7 @@ function WebResult({
   );
 }
 
-function ImageResult({
-  result,
-  query,
-  saved,
-  copied,
-  onSave,
-  onCopy,
-}: {
+function NewsResult(props: {
   result: SearchResult;
   query: string;
   saved: boolean;
@@ -126,6 +122,38 @@ function ImageResult({
   onSave: () => void;
   onCopy: () => void;
 }) {
+  const { result, query, saved, copied, onSave, onCopy } = props;
+  const image = getImageUrl(result);
+
+  return (
+    <article className="news-result">
+      {image && (
+        <a className="news-image" href={result.url} target="_blank" rel="noreferrer">
+          <img src={image} alt="" loading="lazy" referrerPolicy="no-referrer" />
+        </a>
+      )}
+      <div className="news-body">
+        <div className="result-subline news-meta">
+          {result.source || result.engine || "News"}
+          {getPublishedDate(result) && <span>{getPublishedDate(result)}</span>}
+        </div>
+        <a className="news-title" href={result.url} target="_blank" rel="noreferrer">{result.title}</a>
+        {result.content && <div className="result-content">{result.content}</div>}
+        <ResultActions result={result} query={query} saved={saved} copied={copied} onSave={onSave} onCopy={onCopy} />
+      </div>
+    </article>
+  );
+}
+
+function ImageResult(props: {
+  result: SearchResult;
+  query: string;
+  saved: boolean;
+  copied: boolean;
+  onSave: () => void;
+  onCopy: () => void;
+}) {
+  const { result, query, saved, copied, onSave, onCopy } = props;
   const image = getImageUrl(result);
 
   return (
@@ -146,16 +174,7 @@ function ImageResult({
   );
 }
 
-function VideoResult({
-  result,
-  query,
-  saved,
-  copied,
-  onSave,
-  onCopy,
-  playing,
-  onPlay,
-}: {
+function VideoResult(props: {
   result: SearchResult;
   query: string;
   saved: boolean;
@@ -165,6 +184,7 @@ function VideoResult({
   playing: boolean;
   onPlay: () => void;
 }) {
+  const { result, query, saved, copied, onSave, onCopy, playing, onPlay } = props;
   const image = getImageUrl(result);
   const embed = getVideoEmbedUrl(result);
 
@@ -204,7 +224,35 @@ function VideoResult({
   );
 }
 
-export default function ResultsClient({ query, category }: { query: string; category: SearchCategory }) {
+function Pagination({ query, category, page, timeRange }: { query: string; category: SearchCategory; page: number; timeRange: string }) {
+  const makeUrl = (nextPage: number) => {
+    const params = new URLSearchParams({ q: query, category, pageno: String(nextPage) });
+    if (timeRange) params.set("time_range", timeRange);
+    return `/search?${params.toString()}`;
+  };
+
+  return (
+    <nav className="pagination" aria-label="Search results pages">
+      {page > 1 ? (
+        <Link className="page-button" href={makeUrl(page - 1)}><ChevronLeft size={15} /> Previous</Link>
+      ) : <span className="page-button disabled"><ChevronLeft size={15} /> Previous</span>}
+      <span className="page-number">Page {page}</span>
+      <Link className="page-button" href={makeUrl(page + 1)}>Next <ChevronRight size={15} /></Link>
+    </nav>
+  );
+}
+
+export default function ResultsClient({
+  query,
+  category,
+  page,
+  timeRange,
+}: {
+  query: string;
+  category: SearchCategory;
+  page: number;
+  timeRange: string;
+}) {
   const [data, setData] = useState<SearchResponse | null>(null);
   const [error, setError] = useState("");
   const [copied, setCopied] = useState<string | null>(null);
@@ -221,10 +269,18 @@ export default function ResultsClient({ query, category }: { query: string; cate
       setPlaying(null);
 
       try {
-        const response = await fetch(
-          `/api/search?q=${encodeURIComponent(query)}&categories=${encodeURIComponent(category)}&safesearch=1`,
-          { cache: "no-store", signal: controller.signal },
-        );
+        const params = new URLSearchParams({
+          q: query,
+          categories: category,
+          pageno: String(page),
+          safesearch: "1",
+        });
+        if (timeRange) params.set("time_range", timeRange);
+
+        const response = await fetch(`/api/search?${params.toString()}`, {
+          cache: "no-store",
+          signal: controller.signal,
+        });
         const payload = await response.json();
         if (!response.ok) throw new Error(payload.error || "Search failed.");
         if (!alive) return;
@@ -251,7 +307,7 @@ export default function ResultsClient({ query, category }: { query: string; cate
       alive = false;
       controller.abort();
     };
-  }, [query, category]);
+  }, [query, category, page, timeRange]);
 
   async function copyLink(url: string) {
     await navigator.clipboard.writeText(url);
@@ -277,6 +333,12 @@ export default function ResultsClient({ query, category }: { query: string; cate
     setSaved(result.url);
   }
 
+  function changeTimeRange(value: string) {
+    const params = new URLSearchParams({ q: query, category });
+    if (value) params.set("time_range", value);
+    window.location.href = `/search?${params.toString()}`;
+  }
+
   const isMedia = category === "images" || category === "videos";
 
   return (
@@ -295,6 +357,7 @@ export default function ResultsClient({ query, category }: { query: string; cate
             <Link className="icon-link" href="/settings" aria-label="Settings"><Settings size={17} /></Link>
           </nav>
         </div>
+
         <div className="category-row">
           {categories.map((item) => (
             <Link
@@ -305,6 +368,13 @@ export default function ResultsClient({ query, category }: { query: string; cate
               {item.label}
             </Link>
           ))}
+        </div>
+
+        <div className="filter-row">
+          <label className="filter-label" htmlFor="time-range">Time</label>
+          <select id="time-range" className="filter-select" value={timeRange} onChange={(event) => changeTimeRange(event.target.value)}>
+            {timeRanges.map((range) => <option key={range.value} value={range.value}>{range.label}</option>)}
+          </select>
         </div>
       </header>
 
@@ -326,51 +396,44 @@ export default function ResultsClient({ query, category }: { query: string; cate
                 {typeof data.number_of_results === "number" ? ` · ${data.number_of_results.toLocaleString()} found` : ""}
               </div>
 
+              {data.suggestions && data.suggestions.length > 0 && (
+                <div className="suggestions">
+                  <span className="suggestions-label">Related</span>
+                  {data.suggestions.slice(0, 6).map((suggestion) => (
+                    <Link key={suggestion} className="suggestion" href={`/search?q=${encodeURIComponent(suggestion)}&category=${category}`}>
+                      {suggestion}
+                    </Link>
+                  ))}
+                </div>
+              )}
+
               {data.results.length === 0 ? (
                 <div className="state">No results found.</div>
               ) : category === "images" ? (
                 <div className="image-grid">
                   {data.results.map((result, index) => (
-                    <ImageResult
-                      key={`${result.url}-${index}`}
-                      result={result}
-                      query={query}
-                      saved={saved === result.url}
-                      copied={copied === result.url}
-                      onSave={() => saveResult(result)}
-                      onCopy={() => copyLink(result.url)}
-                    />
+                    <ImageResult key={`${result.url}-${index}`} result={result} query={query} saved={saved === result.url} copied={copied === result.url} onSave={() => saveResult(result)} onCopy={() => copyLink(result.url)} />
                   ))}
                 </div>
               ) : category === "videos" ? (
                 <div className="video-grid">
                   {data.results.map((result, index) => (
-                    <VideoResult
-                      key={`${result.url}-${index}`}
-                      result={result}
-                      query={query}
-                      saved={saved === result.url}
-                      copied={copied === result.url}
-                      playing={playing === result.url}
-                      onPlay={() => setPlaying(result.url)}
-                      onSave={() => saveResult(result)}
-                      onCopy={() => copyLink(result.url)}
-                    />
+                    <VideoResult key={`${result.url}-${index}`} result={result} query={query} saved={saved === result.url} copied={copied === result.url} playing={playing === result.url} onPlay={() => setPlaying(result.url)} onSave={() => saveResult(result)} onCopy={() => copyLink(result.url)} />
+                  ))}
+                </div>
+              ) : category === "news" ? (
+                <div className="news-list">
+                  {data.results.map((result, index) => (
+                    <NewsResult key={`${result.url}-${index}`} result={result} query={query} saved={saved === result.url} copied={copied === result.url} onSave={() => saveResult(result)} onCopy={() => copyLink(result.url)} />
                   ))}
                 </div>
               ) : (
                 data.results.map((result, index) => (
-                  <WebResult
-                    key={`${result.url}-${index}`}
-                    result={result}
-                    query={query}
-                    saved={saved === result.url}
-                    copied={copied === result.url}
-                    onSave={() => saveResult(result)}
-                    onCopy={() => copyLink(result.url)}
-                  />
+                  <WebResult key={`${result.url}-${index}`} result={result} query={query} saved={saved === result.url} copied={copied === result.url} onSave={() => saveResult(result)} onCopy={() => copyLink(result.url)} />
                 ))
               )}
+
+              <Pagination query={query} category={category} page={page} timeRange={timeRange} />
             </>
           )}
         </div>
