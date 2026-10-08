@@ -69,16 +69,28 @@ function getSourceInitial(result: SearchResult) {
   return source ? source.charAt(0).toUpperCase() : "W";
 }
 
+function getSourcePath(result: SearchResult) {
+  try {
+    const url = new URL(result.url);
+    const path = decodeURIComponent(url.pathname).replace(/^\/+|\/+$/g, "");
+    if (!path) return "";
+    return path.split("/").filter(Boolean).slice(0, 3).join(" › ");
+  } catch {
+    return "";
+  }
+}
+
 function SourceBadge({ result }: { result: SearchResult }) {
   const domain = getSourceDomain(result);
+  const path = getSourcePath(result);
   return (
-    <span className="source-badge" title={domain}>
+    <span className="source-badge" title={path ? domain + " / " + path : domain}>
       <span className="source-badge-mark">{getSourceInitial(result)}</span>
-      <span>{domain}</span>
+      <span className="source-badge-domain">{domain}</span>
+      {path && <span className="source-badge-path">› {path}</span>}
     </span>
   );
 }
-
 function getImageUrl(result: SearchResult) {
   return getImageCandidates(result)[0] || null;
 }
@@ -113,25 +125,19 @@ function HighlightedText({ text, query }: { text: string; query: string }) {
   const terms = Array.from(
     new Set(
       query
-        .replace(/site:[^\\s]+/gi, " ")
-        .replace(/filetype:[^\\s]+/gi, " ")
-        .replace(/(?:^|\\s)-[a-z0-9][\\w-]*/gi, " ")
+        .replace(/site:[^\s]+/gi, " ")
+        .replace(/filetype:[^\s]+/gi, " ")
+        .replace(/(?:^|\s)-[a-z0-9][\w-]*/gi, " ")
         .replace(/"([^"]+)"/g, "$1")
-        .split(/\\s+/)
+        .split(/\s+/)
         .map((term) => term.replace(/^[^a-z0-9]+|[^a-z0-9]+$/gi, ""))
         .filter((term) => term.length >= 2),
     ),
-  );
+  ).sort((a, b) => b.length - a.length);
 
   if (!text || terms.length === 0) return <>{text}</>;
 
-  const escaped = terms.map((term) => term.replace(/[.*+?^$()|[\\]\\\\]/g, "\\\\function getPublishedDate(result: SearchResult) {
-  const value = result.publishedDate || result.pubdate;
-  if (!value) return "";
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? String(value) : date.toLocaleDateString();
-}
-"));
+  const escaped = terms.map((term) => term.replace(/[.*+?^$()|[\]\\]/g, "\\$&"));
   const pattern = new RegExp("(" + escaped.join("|") + ")", "gi");
   const parts = text.split(pattern);
 
@@ -147,7 +153,6 @@ function HighlightedText({ text, query }: { text: string; query: string }) {
     </>
   );
 }
-
 function MediaImage({
   result,
   alt,
@@ -262,7 +267,7 @@ function NewsResult(props: {
           {getPublishedDate(result) && <span>{getPublishedDate(result)}</span>}
         </div>
         <a className="news-title" href={result.url} target="_blank" rel="noreferrer"><HighlightedText text={result.title} query={query} /></a>
-        {result.content && <div className="result-content">{result.content}</div>}
+        {result.content && <div className="result-content"><HighlightedText text={result.content} query={query} /></div>}
         <ResultActions result={result} query={query} saved={saved} copied={copied} onSave={onSave} onCopy={onCopy} />
       </div>
     </article>
