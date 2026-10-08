@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { SearchCategory, SearchResponse, SearchResult } from "@/lib/search";
+import { useI18n } from "@/components/I18nProvider";
 
 const categories: Array<{ label: string; value: SearchCategory }> = [
   { label: "Web", value: "general" },
@@ -152,10 +153,10 @@ function ResultActions({
 }) {
   return (
     <div className="result-actions">
-      <button className="small-action" onClick={onSave}>{saved ? "Saved" : "Save"}</button>
-      <button className="small-action" onClick={onCopy}>{copied ? "Copied" : "Copy link"}</button>
+      <button className="small-action" onClick={onSave}>{saved ? t("saved") : t("save")}</button>
+      <button className="small-action" onClick={onCopy}>{copied ? t("copied") : t("copyLink")}</button>
       <a className="small-action" href={result.url} target="_blank" rel="noreferrer">
-        <ExternalLink size={11} /> Open
+        <ExternalLink size={11} /> {t("open")}
       </a>
       {saved && <Check size={13} />}
       {copied && <Copy size={11} />}
@@ -326,6 +327,7 @@ function ImagePreviewModal({
   onClose: () => void;
   onNavigate: (nextIndex: number) => void;
 }) {
+  const { t } = useI18n();
   const result = results[index];
   if (!result) return null;
 
@@ -349,27 +351,27 @@ function ImagePreviewModal({
   }, [onClose, onNavigate, previousIndex, nextIndex, results.length]);
 
   return (
-    <div className="image-lightbox" role="dialog" aria-modal="true" aria-label="Image preview" onMouseDown={(event) => {
+    <div className="image-lightbox" role="dialog" aria-modal="true" aria-label={t("imagePreview")} onMouseDown={(event) => {
       if (event.target === event.currentTarget) onClose();
     }}>
-      <button type="button" className="lightbox-close" onClick={onClose} aria-label="Close preview">×</button>
+      <button type="button" className="lightbox-close" onClick={onClose} aria-label={t("closePreview")}>×</button>
       {results.length > 1 && (
         <>
-          <button type="button" className="lightbox-nav lightbox-prev" onClick={() => onNavigate(previousIndex)} aria-label="Previous image">‹</button>
-          <button type="button" className="lightbox-nav lightbox-next" onClick={() => onNavigate(nextIndex)} aria-label="Next image">›</button>
+          <button type="button" className="lightbox-nav lightbox-prev" onClick={() => onNavigate(previousIndex)} aria-label={t("previousImage")}>‹</button>
+          <button type="button" className="lightbox-nav lightbox-next" onClick={() => onNavigate(nextIndex)} aria-label={t("nextImage")}>›</button>
         </>
       )}
       <div className="lightbox-panel">
         <div className="lightbox-media">
           {image ? <MediaImage result={result} alt={result.title} className="lightbox-image" /> : (
-            <div className="lightbox-empty"><ImageIcon size={30} /><span>Preview unavailable</span></div>
+            <div className="lightbox-empty"><ImageIcon size={30} /><span>{t("previewUnavailable")}</span></div>
           )}
         </div>
         <div className="lightbox-info">
           <div className="lightbox-title">{result.title}</div>
           <div className="lightbox-source"><SourceBadge result={result} /></div>
           <div className="lightbox-actions">
-            <a className="small-action" href={result.url} target="_blank" rel="noreferrer"><ExternalLink size={11} /> Open original</a>
+            <a className="small-action" href={result.url} target="_blank" rel="noreferrer"><ExternalLink size={11} /> {t("openOriginal")}</a>
             <span className="lightbox-counter">{index + 1} / {results.length}</span>
           </div>
         </div>
@@ -378,8 +380,9 @@ function ImagePreviewModal({
   );
 }
 function LoadingSkeleton({ category }: { category: SearchCategory }) {
+  const { t } = useI18n();
   if (category === "images") {
-    return <div className="image-grid loading-grid" aria-label="Loading images">
+    return <div className="image-grid loading-grid" aria-label={t("loading")}>
       {Array.from({ length: 8 }).map((_, index) => <div className="skeleton-media-card" key={index}>
         <div className="skeleton skeleton-image" />
         <div className="skeleton-lines"><span className="skeleton skeleton-line wide" /><span className="skeleton skeleton-line short" /></div>
@@ -387,14 +390,14 @@ function LoadingSkeleton({ category }: { category: SearchCategory }) {
     </div>;
   }
   if (category === "videos") {
-    return <div className="video-grid loading-grid" aria-label="Loading videos">
+    return <div className="video-grid loading-grid" aria-label={t("loading")}>
       {Array.from({ length: 4 }).map((_, index) => <div className="skeleton-media-card" key={index}>
         <div className="skeleton skeleton-video" />
         <div className="skeleton-lines"><span className="skeleton skeleton-line wide" /><span className="skeleton skeleton-line medium" /></div>
       </div>)}
     </div>;
   }
-  return <div className="skeleton-results" aria-label="Loading search results">
+  return <div className="skeleton-results" aria-label={t("loading")}>
     {Array.from({ length: 6 }).map((_, index) => <div className="skeleton-result" key={index}>
       <span className="skeleton skeleton-source" /><span className="skeleton skeleton-line title" />
       <span className="skeleton skeleton-line wide" /><span className="skeleton skeleton-line medium" />
@@ -403,6 +406,7 @@ function LoadingSkeleton({ category }: { category: SearchCategory }) {
 }
 
 function Pagination({ query, category, page, timeRange }: { query: string; category: SearchCategory; page: number; timeRange: string }) {
+  const { t } = useI18n();
   const makeUrl = (nextPage: number) => {
     const params = new URLSearchParams({ q: query, category, pageno: String(nextPage) });
     if (timeRange) params.set("time_range", timeRange);
@@ -410,12 +414,12 @@ function Pagination({ query, category, page, timeRange }: { query: string; categ
   };
 
   return (
-    <nav className="pagination" aria-label="Search results pages">
+    <nav className="pagination" aria-label={t("searchResultsPages")}>
       {page > 1 ? (
-        <Link className="page-button" href={makeUrl(page - 1)}><ChevronLeft size={15} /> Previous</Link>
+        <Link className="page-button" href={makeUrl(page - 1)}><ChevronLeft size={15} /> {t("previous")}</Link>
       ) : <span className="page-button disabled"><ChevronLeft size={15} /> Previous</span>}
-      <span className="page-number">Page {page}</span>
-      <Link className="page-button" href={makeUrl(page + 1)}>Next <ChevronRight size={15} /></Link>
+      <span className="page-number">{t("page")} {page}</span>
+      <Link className="page-button" href={makeUrl(page + 1)}>{t("next")} <ChevronRight size={15} /></Link>
     </nav>
   );
 }
@@ -431,6 +435,7 @@ export default function ResultsClient({
   page: number;
   timeRange: string;
 }) {
+  const { t } = useI18n();
   const [data, setData] = useState<SearchResponse | null>(null);
   const [error, setError] = useState("");
   const [copied, setCopied] = useState<string | null>(null);
