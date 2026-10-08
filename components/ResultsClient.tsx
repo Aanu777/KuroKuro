@@ -17,22 +17,22 @@ import { useEffect, useState } from "react";
 import type { SearchCategory, SearchResponse, SearchResult } from "@/lib/search";
 import { useI18n } from "@/components/I18nProvider";
 
-const categories: Array<{ label: string; value: SearchCategory }> = [
-  { label: "Web", value: "general" },
-  { label: "Images", value: "images" },
-  { label: "Videos", value: "videos" },
-  { label: "News", value: "news" },
-  { label: "Maps", value: "map" },
-  { label: "Files", value: "files" },
-  { label: "Science", value: "science" },
+const categories: Array<{ key: string; value: SearchCategory }> = [
+  { key: "web", value: "general" },
+  { key: "images", value: "images" },
+  { key: "videos", value: "videos" },
+  { key: "news", value: "news" },
+  { key: "maps", value: "map" },
+  { key: "files", value: "files" },
+  { key: "science", value: "science" },
 ];
 
 const timeRanges = [
-  { label: "Any time", value: "" },
-  { label: "Past day", value: "day" },
-  { label: "Past week", value: "week" },
-  { label: "Past month", value: "month" },
-  { label: "Past year", value: "year" },
+  { key: "anyTime", value: "" },
+  { key: "pastDay", value: "day" },
+  { key: "pastWeek", value: "week" },
+  { key: "pastMonth", value: "month" },
+  { key: "pastYear", value: "year" },
 ];
 
 type HistoryEntry = { id: string; query: string; createdAt: string };
@@ -249,12 +249,12 @@ function ImageResult(props: {
         className="media-preview image-preview image-preview-button"
         style={{ aspectRatio: getImageAspect(result) }}
         onClick={onPreview}
-        aria-label={`Preview ${result.title}`}
+        aria-label={`${t("preview")} ${result.title}`}
       >
         {image ? <MediaImage result={result} alt={result.title} /> : (
           <div className="media-placeholder"><ImageIcon size={24} /></div>
         )}
-        <span className="image-preview-hint">Preview</span>
+        <span className="image-preview-hint">{t("preview")}</span>
       </button>
       <div className="media-info">
         <a className="media-title" href={result.url} target="_blank" rel="noreferrer">{result.title}</a>
@@ -291,7 +291,7 @@ function VideoResult(props: {
             allowFullScreen
           />
         ) : (
-          <button className="video-poster" onClick={embed ? onPlay : () => window.open(result.url, "_blank", "noopener,noreferrer")} aria-label={embed ? `Play ${result.title}` : "Open video"}>
+          <button className="video-poster" onClick={embed ? onPlay : () => window.open(result.url, "_blank", "noopener,noreferrer")} aria-label={embed ? `${t("play")} ${result.title}` : t("openVideo")}>
             {image ? <MediaImage result={result} alt="" /> : (
               <div className="media-placeholder"><Play size={28} /></div>
             )}
@@ -418,7 +418,7 @@ function Pagination({ query, category, page, timeRange }: { query: string; categ
     <nav className="pagination" aria-label={t("searchResultsPages")}>
       {page > 1 ? (
         <Link className="page-button" href={makeUrl(page - 1)}><ChevronLeft size={15} /> {t("previous")}</Link>
-      ) : <span className="page-button disabled"><ChevronLeft size={15} /> Previous</span>}
+      ) : <span className="page-button disabled"><ChevronLeft size={15} /> {t("previous")}</span>}
       <span className="page-number">{t("page")} {page}</span>
       <Link className="page-button" href={makeUrl(page + 1)}>{t("next")} <ChevronRight size={15} /></Link>
     </nav>
@@ -498,7 +498,7 @@ export default function ResultsClient({
           signal: controller.signal,
         });
         const payload = await response.json();
-        if (!response.ok) throw new Error(payload.error || "Search failed.");
+        if (!response.ok) throw new Error(payload.error || t("searchFailed"));
         if (!alive) return;
 
         setData(payload);
@@ -514,7 +514,7 @@ export default function ResultsClient({
         }
       } catch (err) {
         if (err instanceof DOMException && err.name === "AbortError") return;
-        if (alive) setError(err instanceof Error ? err.message : "Search failed.");
+        if (alive) setError(err instanceof Error ? err.message : t("searchFailed"));
       }
     }
 
@@ -563,14 +563,14 @@ export default function ResultsClient({
         <div className="results-header-inner">
           <Link href="/" className="results-wordmark">KUROKURO</Link>
           <form className="search-form header-search" action="/search">
-            <input className="search-input" name="q" defaultValue={query} aria-label="Search the web" autoComplete="off" />
+            <input className="search-input" name="q" defaultValue={query} aria-label={t("searchWeb")} autoComplete="off" />
             <input type="hidden" name="category" value={category} />
-            <button className="search-submit" type="submit" aria-label="Search"><span>⌕</span></button>
+            <button className="search-submit" type="submit" aria-label={t("search")}><span>⌕</span></button>
           </form>
-          <nav className="header-links" aria-label="Utilities">
-            <Link className="icon-link" href="/history" aria-label="History"><History size={17} /></Link>
-            <Link className="icon-link" href="/bookmarks" aria-label="Bookmarks"><Bookmark size={17} /></Link>
-            <Link className="icon-link" href="/settings" aria-label="Settings"><Settings size={17} /></Link>
+          <nav className="header-links" aria-label={t("utilities")}>
+            <Link className="icon-link" href="/history" aria-label={t("history")}><History size={17} /></Link>
+            <Link className="icon-link" href="/bookmarks" aria-label={t("bookmarks")}><Bookmark size={17} /></Link>
+            <Link className="icon-link" href="/settings" aria-label={t("settings")}><Settings size={17} /></Link>
           </nav>
         </div>
 
@@ -581,13 +581,13 @@ export default function ResultsClient({
               className={`category ${category === item.value ? "active" : ""}`}
               href={`/search?q=${encodeURIComponent(query)}&category=${item.value}`}
             >
-              {item.label}
+              {t(item.key)}
             </Link>
           ))}
         </div>
 
         <div className="filter-row">
-          <span className="filter-label">Filters</span>
+          <span className="filter-label">{t("filters")}</span>
           <div className="filter-group">
             {timeRanges.map((range) => (
               <Link
@@ -603,7 +603,7 @@ export default function ResultsClient({
               </Link>
             ))}
           </div>
-          <label className="filter-label filter-label-secondary" htmlFor="safe-search">SafeSearch</label>
+          <label className="filter-label filter-label-secondary" htmlFor="safe-search">{t("safesearch")}</label>
           <select
             id="safe-search"
             className="filter-select"
@@ -614,9 +614,9 @@ export default function ResultsClient({
               localStorage.setItem("kurokuro-safesearch", value);
             }}
           >
-            <option value="0">Off</option>
-            <option value="1">Moderate</option>
-            <option value="2">Strict</option>
+            <option value="0">{t("off")}</option>
+            <option value="1">{t("moderate")}</option>
+            <option value="2">{t("strict")}</option>
           </select>
         </div>
       </header>
@@ -635,12 +635,12 @@ export default function ResultsClient({
                   Results for <strong>{data.query}</strong>
                   {typeof data.number_of_results === "number" ? ` · ${data.number_of_results.toLocaleString()} found` : ""}
                 </div>
-                <span className="result-status"><span className="status-dot" /> Aggregated search</span>
+                <span className="result-status"><span className="status-dot" /> {t("aggregated")}</span>
               </div>
 
 
           <details className="power-search">
-            <summary>Power search</summary>
+            <summary>{t("powerSearch")}</summary>
             <div className="power-search-body">
               <div className="power-search-copy">
                 Use SearXNG operators directly in the search box. Kurokuro passes them through unchanged.
@@ -659,7 +659,7 @@ export default function ResultsClient({
 
               {data.suggestions && data.suggestions.length > 0 && (
                 <div className="suggestions">
-                  <span className="suggestions-label">Related</span>
+                  <span className="suggestions-label">{t("related")}</span>
                   {data.suggestions.slice(0, 6).map((suggestion) => (
                     <Link key={suggestion} className="suggestion" href={`/search?q=${encodeURIComponent(suggestion)}&category=${category}`}>
                       {suggestion}
@@ -669,15 +669,15 @@ export default function ResultsClient({
               )}
 
               {data.results.length === 0 ? (
-                <div className="state">No results found.</div>
+                <div className="state">{t("noResults")}</div>
               ) : category === "images" ? (
                 (() => {
                   const imageResults = data.results.filter((result) => Boolean(getImageUrl(result)));
                   return imageResults.length === 0 ? (
                     <div className="state media-empty">
                       <ImageIcon size={24} />
-                      <strong>No previewable images found.</strong>
-                      <span>Try a broader search or open the Web tab.</span>
+                      <strong>{t("noImages")}</strong>
+                      <span>{t("tryBroader")}</span>
                     </div>
                   ) : (
                     <div className="image-grid">
