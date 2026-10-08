@@ -240,6 +240,7 @@ function ImageResult(props: {
   onPreview: () => void;
 }) {
   const { result, query, saved, copied, onSave, onCopy, onPreview } = props;
+  const { t } = useI18n();
   const image = getImageUrl(result);
 
   return (
@@ -276,6 +277,7 @@ function VideoResult(props: {
   onPlay: () => void;
 }) {
   const { result, query, saved, copied, onSave, onCopy, playing, onPlay } = props;
+  const { t } = useI18n();
   const image = getImageUrl(result);
   const embed = getVideoEmbedUrl(result);
 
