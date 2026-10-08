@@ -782,3 +782,87 @@ html[data-theme="dark"] .status-dot {
   .filter-label-secondary { order: 3; }
   .filter-select { order: 4; }
 }
+
+
+/* Phase 9 — RTL language support */
+html[dir="rtl"] {
+  text-align: right;
+}
+
+html[dir="rtl"] .search-form,
+html[dir="rtl"] .header-search,
+html[dir="rtl"] .search-box {
+  direction: rtl;
+}
+
+html[dir="rtl"] .search-input,
+html[dir="rtl"] input,
+html[dir="rtl"] textarea,
+html[dir="rtl"] select {
+  text-align: right;
+}
+
+html[dir="rtl"] .header-links {
+  flex-direction: row-reverse;
+}
+
+html[dir="rtl"] .categories,
+html[dir="rtl"] .filter-row,
+html[dir="rtl"] .filter-group,
+html[dir="rtl"] .result-actions,
+html[dir="rtl"] .lightbox-actions {
+  direction: rtl;
+}
+
+html[dir="rtl"] .filter-label-secondary {
+  margin-left: 0;
+  margin-right: auto;
+}
+
+html[dir="rtl"] .result-subline,
+html[dir="rtl"] .media-source,
+html[dir="rtl"] .video-secondary-meta {
+  direction: rtl;
+}
+
+html[dir="rtl"] .result-thumb,
+html[dir="rtl"] .news-image {
+  order: -1;
+}
+
+html[dir="rtl"] .image-preview-hint {
+  left: auto;
+  right: 10px;
+}
+
+html[dir="rtl"] .lightbox-close {
+  right: auto;
+  left: 18px;
+}
+
+html[dir="rtl"] .lightbox-prev {
+  left: auto;
+  right: 18px;
+}
+
+html[dir="rtl"] .lightbox-next {
+  right: auto;
+  left: 18px;
+}
+
+@media (max-width: 700px) {
+  html[dir="rtl"] .lightbox-close {
+    right: auto;
+    left: 9px;
+  }
+
+  html[dir="rtl"] .lightbox-prev {
+    left: auto;
+    right: 8px;
+  }
+
+  html[dir="rtl"] .lightbox-next {
+    right: auto;
+    left: 8px;
+  }
+}
