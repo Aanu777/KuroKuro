@@ -4,6 +4,7 @@ import type { SearchResponse } from "@/lib/search";
 export const dynamic = "force-dynamic";
 
 const SEARXNG_URL = process.env.SEARXNG_URL || "http://localhost:8080";
+const SEARCH_TIMEOUT_MS = 8500;
 
 export async function GET(request: NextRequest) {
   const incoming = request.nextUrl.searchParams;
@@ -28,11 +29,21 @@ export async function GET(request: NextRequest) {
   if (language) params.set("language", language);
   if (timeRange) params.set("time_range", timeRange);
 
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), SEARCH_TIMEOUT_MS);
+
   try {
-    const response = await fetch(`${SEARXNG_URL.replace(/\/$/, "")}/search?${params.toString()}`, {
-      headers: { Accept: "application/json" },
-      cache: "no-store",
-    });
+    const response = await fetch(
+      `${SEARXNG_URL.replace(/\/$/, "")}/search?${params.toString()}`,
+      {
+        headers: {
+          Accept: "application/json",
+          "Accept-Encoding": "gzip, deflate, br",
+        },
+        signal: controller.signal,
+        cache: "no-store",
+      },
+    );
 
     if (!response.ok) {
       const detail = await response.text().catch(() => "");
@@ -43,11 +54,23 @@ export async function GET(request: NextRequest) {
     }
 
     const data = (await response.json()) as SearchResponse;
-    return NextResponse.json(data);
-  } catch {
+
+    return NextResponse.json(data, {
+      headers: {
+        "Cache-Control": "private, max-age=20, stale-while-revalidate=60",
+      },
+    });
+  } catch (error) {
+    const timedOut = error instanceof DOMException && error.name === "AbortError";
     return NextResponse.json(
-      { error: "Kurokuro could not reach SearXNG. Start the search backend and try again." },
-      { status: 503 },
+      {
+        error: timedOut
+          ? "Search timed out. Try again or use a more specific query."
+          : "Kurokuro could not reach SearXNG. Start the search backend and try again.",
+      },
+      { status: timedOut ? 504 : 503 },
     );
+  } finally {
+    clearTimeout(timeout);
   }
 }
