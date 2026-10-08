@@ -331,7 +331,9 @@ export default function ResultsClient({
         if (timeRange) params.set("time_range", timeRange);
 
         const response = await fetch(`/api/search?${params.toString()}`, {
-          cache: "no-store",
+          // Allow the browser to reuse a recent identical search; the API
+          // response is still private and short-lived.
+          cache: "default",
           signal: controller.signal,
         });
         const payload = await response.json();
