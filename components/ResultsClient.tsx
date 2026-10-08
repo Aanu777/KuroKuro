@@ -235,17 +235,25 @@ function ImageResult(props: {
   copied: boolean;
   onSave: () => void;
   onCopy: () => void;
+  onPreview: () => void;
 }) {
-  const { result, query, saved, copied, onSave, onCopy } = props;
+  const { result, query, saved, copied, onSave, onCopy, onPreview } = props;
   const image = getImageUrl(result);
 
   return (
     <article className="media-card image-card">
-      <a className="media-preview image-preview" style={{ aspectRatio: getImageAspect(result) }} href={result.url} target="_blank" rel="noreferrer">
+      <button
+        type="button"
+        className="media-preview image-preview image-preview-button"
+        style={{ aspectRatio: getImageAspect(result) }}
+        onClick={onPreview}
+        aria-label={`Preview ${result.title}`}
+      >
         {image ? <MediaImage result={result} alt={result.title} /> : (
           <div className="media-placeholder"><ImageIcon size={24} /></div>
         )}
-      </a>
+        <span className="image-preview-hint">Preview</span>
+      </button>
       <div className="media-info">
         <a className="media-title" href={result.url} target="_blank" rel="noreferrer">{result.title}</a>
         <div className="media-source"><SourceBadge result={result} />{result.resolution ? ` · ${result.resolution}` : ""}{getMediaLabel(result) ? ` · ${getMediaLabel(result)}` : ""}</div>
@@ -307,6 +315,68 @@ function VideoResult(props: {
   );
 }
 
+function ImagePreviewModal({
+  results,
+  index,
+  onClose,
+  onNavigate,
+}: {
+  results: SearchResult[];
+  index: number;
+  onClose: () => void;
+  onNavigate: (nextIndex: number) => void;
+}) {
+  const result = results[index];
+  if (!result) return null;
+
+  const image = getImageUrl(result);
+  const previousIndex = index > 0 ? index - 1 : results.length - 1;
+  const nextIndex = index < results.length - 1 ? index + 1 : 0;
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+      if (event.key === "ArrowLeft" && results.length > 1) onNavigate(previousIndex);
+      if (event.key === "ArrowRight" && results.length > 1) onNavigate(nextIndex);
+    };
+
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.body.style.overflow = "";
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [onClose, onNavigate, previousIndex, nextIndex, results.length]);
+
+  return (
+    <div className="image-lightbox" role="dialog" aria-modal="true" aria-label="Image preview" onMouseDown={(event) => {
+      if (event.target === event.currentTarget) onClose();
+    }}>
+      <button type="button" className="lightbox-close" onClick={onClose} aria-label="Close preview">×</button>
+      {results.length > 1 && (
+        <>
+          <button type="button" className="lightbox-nav lightbox-prev" onClick={() => onNavigate(previousIndex)} aria-label="Previous image">‹</button>
+          <button type="button" className="lightbox-nav lightbox-next" onClick={() => onNavigate(nextIndex)} aria-label="Next image">›</button>
+        </>
+      )}
+      <div className="lightbox-panel">
+        <div className="lightbox-media">
+          {image ? <MediaImage result={result} alt={result.title} className="lightbox-image" /> : (
+            <div className="lightbox-empty"><ImageIcon size={30} /><span>Preview unavailable</span></div>
+          )}
+        </div>
+        <div className="lightbox-info">
+          <div className="lightbox-title">{result.title}</div>
+          <div className="lightbox-source"><SourceBadge result={result} /></div>
+          <div className="lightbox-actions">
+            <a className="small-action" href={result.url} target="_blank" rel="noreferrer"><ExternalLink size={11} /> Open original</a>
+            <span className="lightbox-counter">{index + 1} / {results.length}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 function LoadingSkeleton({ category }: { category: SearchCategory }) {
   if (category === "images") {
     return <div className="image-grid loading-grid" aria-label="Loading images">
@@ -366,6 +436,7 @@ export default function ResultsClient({
   const [copied, setCopied] = useState<string | null>(null);
   const [saved, setSaved] = useState<string | null>(null);
   const [playing, setPlaying] = useState<string | null>(null);
+  const [previewIndex, setPreviewIndex] = useState<number | null>(null);
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -388,6 +459,7 @@ export default function ResultsClient({
       setData(null);
       setError("");
       setPlaying(null);
+      setPreviewIndex(null);
 
       try {
         const safeSearch = localStorage.getItem("kurokuro-safesearch") || "1";
@@ -558,18 +630,37 @@ export default function ResultsClient({
               {data.results.length === 0 ? (
                 <div className="state">No results found.</div>
               ) : category === "images" ? (
-                <div className="image-grid">
-                  {data.results.map((result, index) => (
-                    <ImageResult key={`${result.url}-${index}`} result={result} query={query} saved={saved === result.url} copied={copied === result.url} onSave={() => saveResult(result)} onCopy={() => copyLink(result.url)} />
-                  ))}
-                </div>
+                (() => {
+                  const imageResults = data.results.filter((result) => Boolean(getImageUrl(result)));
+                  return imageResults.length === 0 ? (
+                    <div className="state media-empty">
+                      <ImageIcon size={24} />
+                      <strong>No previewable images found.</strong>
+                      <span>Try a broader search or open the Web tab.</span>
+                    </div>
+                  ) : (
+                    <div className="image-grid">
+                      {imageResults.map((result, index) => (
+                        <ImageResult
+                          key={`${result.url}-${index}`}
+                          result={result}
+                          query={query}
+                          saved={saved === result.url}
+                          copied={copied === result.url}
+                          onSave={() => saveResult(result)}
+                          onCopy={() => copyLink(result.url)}
+                          onPreview={() => setPreviewIndex(index)}
+                        />
+                      ))}
+                    </div>
+                  );
+                })()
               ) : category === "videos" ? (
                 <div className="video-grid">
                   {data.results.map((result, index) => (
                     <VideoResult key={`${result.url}-${index}`} result={result} query={query} saved={saved === result.url} copied={copied === result.url} playing={playing === result.url} onPlay={() => setPlaying(result.url)} onSave={() => saveResult(result)} onCopy={() => copyLink(result.url)} />
                   ))}
-                </div>
-              ) : category === "news" ? (
+                </div>              ) : category === "news" ? (
                 <div className="news-list">
                   {data.results.map((result, index) => (
                     <NewsResult key={`${result.url}-${index}`} result={result} query={query} saved={saved === result.url} copied={copied === result.url} onSave={() => saveResult(result)} onCopy={() => copyLink(result.url)} />
@@ -582,6 +673,14 @@ export default function ResultsClient({
               )}
 
               <Pagination query={query} category={category} page={page} timeRange={timeRange} />
+              {category === "images" && previewIndex !== null && (
+                <ImagePreviewModal
+                  results={data.results.filter((result) => Boolean(getImageUrl(result)))}
+                  index={previewIndex}
+                  onClose={() => setPreviewIndex(null)}
+                  onNavigate={setPreviewIndex}
+                />
+              )}
             </>
           )}
         </div>
