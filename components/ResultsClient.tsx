@@ -551,12 +551,6 @@ export default function ResultsClient({
     setSaved(result.url);
   }
 
-  function changeTimeRange(value: string) {
-    const params = new URLSearchParams({ q: query, category });
-    if (value) params.set("time_range", value);
-    window.location.href = `/search?${params.toString()}`;
-  }
-
   const isMedia = category === "images" || category === "videos";
 
   return (
@@ -601,7 +595,7 @@ export default function ResultsClient({
                   return `/search?${params.toString()}`;
                 })()}
               >
-                {range.label}
+                {t(range.key)}
               </Link>
             ))}
           </div>
