@@ -41,8 +41,12 @@ function isHttpUrl(value: unknown): value is string {
   return typeof value === "string" && /^https?:\/\//i.test(value);
 }
 
+function getImageCandidates(result: SearchResult) {
+  return [result.thumbnail_src, result.thumbnail, result.img_src].filter(isHttpUrl);
+}
+
 function getImageUrl(result: SearchResult) {
-  return [result.thumbnail_src, result.thumbnail, result.img_src].find(isHttpUrl) || null;
+  return getImageCandidates(result)[0] || null;
 }
 
 function getVideoEmbedUrl(result: SearchResult) {
@@ -54,6 +58,33 @@ function getPublishedDate(result: SearchResult) {
   if (!value) return "";
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? String(value) : date.toLocaleDateString();
+}
+
+function MediaImage({
+  result,
+  alt,
+  className,
+}: {
+  result: SearchResult;
+  alt: string;
+  className?: string;
+}) {
+  const candidates = getImageCandidates(result);
+  const [index, setIndex] = useState(0);
+  const src = candidates[index];
+
+  if (!src) return <div className="media-placeholder"><ImageIcon size={24} /></div>;
+
+  return (
+    <img
+      className={className}
+      src={src}
+      alt={alt}
+      loading="lazy"
+      referrerPolicy="no-referrer"
+      onError={() => setIndex((current) => current + 1)}
+    />
+  );
 }
 
 function ResultActions({
@@ -110,7 +141,7 @@ function WebResult(props: {
       </div>
       {image && (
         <a className="result-thumb result-thumb-web" href={result.url} target="_blank" rel="noreferrer">
-          <img src={image} alt="" loading="lazy" referrerPolicy="no-referrer" />
+          <MediaImage result={result} alt="" />
         </a>
       )}
     </article>
@@ -132,7 +163,7 @@ function NewsResult(props: {
     <article className="news-result">
       {image && (
         <a className="news-image" href={result.url} target="_blank" rel="noreferrer">
-          <img src={image} alt="" loading="lazy" referrerPolicy="no-referrer" />
+          <MediaImage result={result} alt="" />
         </a>
       )}
       <div className="news-body">
@@ -162,9 +193,7 @@ function ImageResult(props: {
   return (
     <article className="media-card image-card">
       <a className="media-preview image-preview" href={result.url} target="_blank" rel="noreferrer">
-        {image ? (
-          <img src={image} alt={result.title} loading="lazy" referrerPolicy="no-referrer" />
-        ) : (
+        {image ? <MediaImage result={result} alt={result.title} /> : (
           <div className="media-placeholder"><ImageIcon size={24} /></div>
         )}
       </a>
@@ -204,9 +233,7 @@ function VideoResult(props: {
           />
         ) : (
           <button className="video-poster" onClick={embed ? onPlay : undefined} aria-label={embed ? `Play ${result.title}` : "Open video"}>
-            {image ? (
-              <img src={image} alt="" loading="lazy" referrerPolicy="no-referrer" />
-            ) : (
+            {image ? <MediaImage result={result} alt="" /> : (
               <div className="media-placeholder"><Play size={28} /></div>
             )}
             <span className="play-button"><Play size={17} fill="currentColor" /></span>
@@ -421,6 +448,25 @@ export default function ResultsClient({
                 Results for <strong>{data.query}</strong>
                 {typeof data.number_of_results === "number" ? ` · ${data.number_of_results.toLocaleString()} found` : ""}
               </div>
+
+
+          <details className="power-search">
+            <summary>Power search</summary>
+            <div className="power-search-body">
+              <div className="power-search-copy">
+                Use SearXNG operators directly in the search box. Kurokuro passes them through unchanged.
+              </div>
+              <div className="power-search-examples">
+                <code>site:github.com cybersecurity</code>
+                <code>site:edu machine learning</code>
+                <code>filetype:pdf networking</code>
+                <code>"exact phrase"</code>
+                <code>security -malware</code>
+                <code>!wp quantum computing</code>
+                <code>:ur پاکستان</code>
+              </div>
+            </div>
+          </details>
 
               {data.suggestions && data.suggestions.length > 0 && (
                 <div className="suggestions">
