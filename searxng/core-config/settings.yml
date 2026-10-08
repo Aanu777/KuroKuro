@@ -22,8 +22,21 @@ outgoing:
   enable_http2: true
 
 engines:
-  # Keep the fast/general sources useful for a local instance.
+  # General web search.
   - name: bing
+    disabled: false
+    timeout: 2.0
+
+  # Match the fast general-search budget for the media/news tabs.
+  - name: bing images
+    disabled: false
+    timeout: 2.0
+
+  - name: bing videos
+    disabled: false
+    timeout: 2.0
+
+  - name: bing news
     disabled: false
     timeout: 2.0
 
@@ -31,11 +44,11 @@ engines:
   # during local testing, so disabling them keeps the UI responsive.
   - name: brave
     disabled: true
-    timeout: 2.5
+    timeout: 2.0
 
   - name: duckduckgo
     disabled: true
-    timeout: 2.5
+    timeout: 2.0
 
   # Not needed for normal web/image/video/news search.
   - name: ahmia
