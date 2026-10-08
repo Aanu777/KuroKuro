@@ -64,19 +64,34 @@ export async function GET(request: NextRequest) {
       }
     });
 
-    // Re-rank the aggregated results using lightweight local relevance signals.
-    // SearXNG still decides which engines contribute; Kurokuro only improves the
-    // final ordering so strong title/domain matches rise above noisy matches.
+    // Re-rank aggregated results with lightweight local relevance signals.
+    // Search operators are treated as constraints rather than ordinary terms.
     const normalizedQuery = q
-      .replace(/^:[a-z-]+\\s+/i, "")
+      .replace(/^:[a-z-]+\s+/i, "")
       .trim()
       .toLowerCase();
 
-    const exactPhrase = normalizedQuery.replace(/^"(.*)"$/, "$1").trim();
-    const queryTerms = exactPhrase
-      .split(/\\s+/)
+    const siteMatch = normalizedQuery.match(/(?:^|\s)site:([^\s]+)/i);
+    const filetypeMatch = normalizedQuery.match(/(?:^|\s)filetype:([^\s]+)/i);
+    const excludedTerms = [...normalizedQuery.matchAll(/(?:^|\s)-([a-z0-9][\w-]*)/gi)]
+      .map((match) => match[1].toLowerCase());
+
+    const phraseMatches = [...normalizedQuery.matchAll(/"([^"]+)"/g)].map((match) => match[1].toLowerCase());
+    const cleanedQuery = normalizedQuery
+      .replace(/site:[^\s]+/gi, " ")
+      .replace(/filetype:[^\s]+/gi, " ")
+      .replace(/(?:^|\s)-[a-z0-9][\w-]*/gi, " ")
+      .replace(/"([^"]+)"/g, "$1")
+      .replace(/\s+/g, " ")
+      .trim();
+
+    const queryTerms = cleanedQuery
+      .split(/\s+/)
       .map((term) => term.replace(/^[^a-z0-9]+|[^a-z0-9]+$/gi, ""))
       .filter((term) => term.length >= 2);
+
+    const siteTarget = siteMatch?.[1]?.toLowerCase().replace(/^www\./, "");
+    const filetypeTarget = filetypeMatch?.[1]?.toLowerCase().replace(/^\./, "");
 
     const ranked = results
       .map((result, originalIndex) => {
@@ -84,25 +99,43 @@ export async function GET(request: NextRequest) {
         const content = String(result.content || "").toLowerCase();
         let hostname = "";
         try {
-          hostname = new URL(result.url).hostname.toLowerCase().replace(/^www\\./, "");
+          hostname = new URL(result.url).hostname.toLowerCase().replace(/^www\./, "");
         } catch {
           hostname = "";
         }
 
         let score = Math.max(0, 100 - originalIndex * 0.35);
 
-        if (exactPhrase && title.includes(exactPhrase)) score += 38;
-        if (exactPhrase && content.includes(exactPhrase)) score += 12;
-        if (normalizedQuery && hostname.includes(normalizedQuery.replace(/\\s+/g, ""))) score += 16;
-
-        for (const term of queryTerms) {
-          if (title.includes(term)) score += 11;
-          if (content.includes(term)) score += 2;
-          if (hostname.includes(term)) score += 5;
+        for (const phrase of phraseMatches) {
+          if (title.includes(phrase)) score += 42;
+          if (content.includes(phrase)) score += 14;
         }
 
-        const titleTerms = queryTerms.filter((term) => title.includes(term)).length;
-        if (queryTerms.length > 1 && titleTerms === queryTerms.length) score += 20;
+        if (siteTarget) {
+          score += hostname === siteTarget ? 55 : hostname.endsWith(`.${siteTarget}`) ? 40 : -80;
+        }
+
+        if (filetypeTarget) {
+          const pathname = hostname + (result.url.split("?")[0] || "").toLowerCase();
+          score += pathname.endsWith(`.${filetypeTarget}`) ? 45 : 0;
+        }
+
+        if (hostname && queryTerms.some((term) => hostname.includes(term))) score += 8;
+
+        for (const term of queryTerms) {
+          if (title.includes(term)) score += 12;
+          if (content.includes(term)) score += 2;
+        }
+
+        if (queryTerms.length > 1) {
+          const titleTerms = queryTerms.filter((term) => title.includes(term)).length;
+          if (titleTerms === queryTerms.length) score += 24;
+        }
+
+        for (const excluded of excludedTerms) {
+          if (title.includes(excluded)) score -= 60;
+          if (content.includes(excluded)) score -= 18;
+        }
 
         return { result, score, originalIndex };
       })
