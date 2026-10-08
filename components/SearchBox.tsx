@@ -3,15 +3,11 @@
 import { Search, ArrowUp, ArrowDown, CornerDownLeft } from "lucide-react";
 import { FormEvent, useEffect, useRef, useState } from "react";
 import type { SearchCategory } from "@/lib/search";
+import { useI18n } from "@/components/I18nProvider";
 
-const categories: Array<{ label: string; value: SearchCategory }> = [
-  { label: "Web", value: "general" },
-  { label: "Images", value: "images" },
-  { label: "Videos", value: "videos" },
-  { label: "News", value: "news" },
-  { label: "Maps", value: "map" },
-  { label: "Files", value: "files" },
-  { label: "Science", value: "science" },
+const categories: Array<{ key: string; value: SearchCategory }> = [
+  { key: "web", value: "general" }, { key: "images", value: "images" }, { key: "videos", value: "videos" },
+  { key: "news", value: "news" }, { key: "maps", value: "map" }, { key: "files", value: "files" }, { key: "science", value: "science" },
 ];
 
 export default function SearchBox({
@@ -23,6 +19,7 @@ export default function SearchBox({
   initialCategory?: SearchCategory;
   compact?: boolean;
 }) {
+  const { t } = useI18n();
   const [query, setQuery] = useState(initialQuery);
   const [category, setCategory] = useState<SearchCategory>(initialCategory);
   const [suggestions, setSuggestions] = useState<string[]>([]);
@@ -127,19 +124,19 @@ export default function SearchBox({
             onFocus={() => suggestions.length > 0 && setOpen(true)}
             onKeyDown={handleKeyDown}
             onBlur={() => window.setTimeout(() => setOpen(false), 120)}
-            placeholder="Search the web"
-            aria-label="Search the web"
+            placeholder={t("searchWeb")}
+            aria-label={t("searchWeb")}
             aria-autocomplete="list"
             aria-expanded={open}
             autoComplete="off"
           />
-          <button className="search-submit" aria-label="Search" type="submit">
+          <button className="search-submit" aria-label={t("search")} type="submit">
             <Search size={compact ? 15 : 19} strokeWidth={1.8} />
           </button>
         </form>
 
         {open && (
-          <div className="suggestion-menu" role="listbox" aria-label="Search suggestions">
+          <div className="suggestion-menu" role="listbox" aria-label={t("searchSuggestions")}>
             {suggestions.map((suggestion, index) => (
               <button
                 key={suggestion}
@@ -160,16 +157,16 @@ export default function SearchBox({
               </button>
             ))}
             <div className="suggestion-help">
-              <span><ArrowUp size={11} /><ArrowDown size={11} /> navigate</span>
-              <span><CornerDownLeft size={11} /> search</span>
-              <span>Esc close</span>
+              <span><ArrowUp size={11} /><ArrowDown size={11} /> {t("navigate")}</span>
+              <span><CornerDownLeft size={11} /> {t("search")}</span>
+              <span>Esc {t("close")}</span>
             </div>
           </div>
         )}
       </div>
 
       {!compact && (
-        <div className="tabs" aria-label="Search categories">
+        <div className="tabs" aria-label={t("searchCategories")}>
           {categories.map((item) => (
             <button
               className={`tab ${category === item.value ? "active" : ""}`}
@@ -177,7 +174,7 @@ export default function SearchBox({
               type="button"
               onClick={() => setCategory(item.value)}
             >
-              {item.label}
+              {t(item.key)}
             </button>
           ))}
         </div>
