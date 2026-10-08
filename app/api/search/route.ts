@@ -4,7 +4,7 @@ import type { SearchResponse } from "@/lib/search";
 export const dynamic = "force-dynamic";
 
 const SEARXNG_URL = process.env.SEARXNG_URL || "http://localhost:8080";
-const SEARCH_TIMEOUT_MS = 8500;
+const SEARCH_TIMEOUT_MS = 6500;
 
 export async function GET(request: NextRequest) {
   const incoming = request.nextUrl.searchParams;
@@ -63,7 +63,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(data, {
       headers: {
-        "Cache-Control": "private, max-age=20, stale-while-revalidate=60",
+        "Cache-Control": "private, max-age=15, stale-while-revalidate=45",
       },
     });
   } catch (error) {
