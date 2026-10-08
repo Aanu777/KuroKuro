@@ -437,6 +437,7 @@ export default function ResultsClient({
   const [saved, setSaved] = useState<string | null>(null);
   const [playing, setPlaying] = useState<string | null>(null);
   const [previewIndex, setPreviewIndex] = useState<number | null>(null);
+  const [safeSearch, setSafeSearch] = useState("1");
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -462,7 +463,6 @@ export default function ResultsClient({
       setPreviewIndex(null);
 
       try {
-        const safeSearch = localStorage.getItem("kurokuro-safesearch") || "1";
         const language = localStorage.getItem("kurokuro-language") || "all";
         const params = new URLSearchParams({
           q: query,
@@ -512,7 +512,7 @@ export default function ResultsClient({
       alive = false;
       controller.abort();
     };
-  }, [query, category, page, timeRange]);
+  }, [query, category, page, timeRange, safeSearch]);
 
   async function copyLink(url: string) {
     await navigator.clipboard.writeText(url);
@@ -576,9 +576,36 @@ export default function ResultsClient({
         </div>
 
         <div className="filter-row">
-          <label className="filter-label" htmlFor="time-range">Time</label>
-          <select id="time-range" className="filter-select" value={timeRange} onChange={(event) => changeTimeRange(event.target.value)}>
-            {timeRanges.map((range) => <option key={range.value} value={range.value}>{range.label}</option>)}
+          <span className="filter-label">Filters</span>
+          <div className="filter-group">
+            {timeRanges.map((range) => (
+              <Link
+                key={range.value || "any"}
+                className={`filter-chip ${timeRange === range.value ? "active" : ""}`}
+                href={(() => {
+                  const params = new URLSearchParams({ q: query, category });
+                  if (range.value) params.set("time_range", range.value);
+                  return `/search?${params.toString()}`;
+                })()}
+              >
+                {range.label}
+              </Link>
+            ))}
+          </div>
+          <label className="filter-label filter-label-secondary" htmlFor="safe-search">SafeSearch</label>
+          <select
+            id="safe-search"
+            className="filter-select"
+            value={safeSearch}
+            onChange={(event) => {
+              const value = event.target.value;
+              setSafeSearch(value);
+              localStorage.setItem("kurokuro-safesearch", value);
+            }}
+          >
+            <option value="0">Off</option>
+            <option value="1">Moderate</option>
+            <option value="2">Strict</option>
           </select>
         </div>
       </header>
@@ -592,9 +619,12 @@ export default function ResultsClient({
 
           {data && (
             <>
-              <div className="result-meta">
-                Results for <strong>{data.query}</strong>
-                {typeof data.number_of_results === "number" ? ` · ${data.number_of_results.toLocaleString()} found` : ""}
+              <div className="result-toolbar">
+                <div className="result-meta">
+                  Results for <strong>{data.query}</strong>
+                  {typeof data.number_of_results === "number" ? ` · ${data.number_of_results.toLocaleString()} found` : ""}
+                </div>
+                <span className="result-status"><span className="status-dot" /> Aggregated search</span>
               </div>
 
 
