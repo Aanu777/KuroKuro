@@ -12,7 +12,19 @@ function cleanSuggestions(value: unknown, query: string) {
   const seen = new Set<string>();
 
   return value
-    .map((item) => (typeof item === "string" ? item.replace(/[\u0000-\u001f]/g, "").trim() : ""))
+    .map((item) =>
+      typeof item === "string"
+        ? item
+            .replace(/<[^>]*>/g, "")
+            .replace(/&amp;/g, "&")
+            .replace(/&lt;/g, "<")
+            .replace(/&gt;/g, ">")
+            .replace(/&quot;/g, '"')
+            .replace(/&#39;/g, "'")
+            .replace(/[\u0000-\u001f]/g, "")
+            .trim()
+        : ""
+    )
     .filter((item) => {
       if (!item || item.toLowerCase() === normalized || seen.has(item.toLowerCase())) return false;
       seen.add(item.toLowerCase());
