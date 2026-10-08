@@ -59,6 +59,25 @@ function getDisplaySource(result: SearchResult) {
   return result.source || result.engine || getHostname(result.url) || "Web result";
 }
 
+function getSourceDomain(result: SearchResult) {
+  return getHostname(result.url) || getDisplaySource(result);
+}
+
+function getSourceInitial(result: SearchResult) {
+  const source = getSourceDomain(result).trim();
+  return source ? source.charAt(0).toUpperCase() : "W";
+}
+
+function SourceBadge({ result }: { result: SearchResult }) {
+  const domain = getSourceDomain(result);
+  return (
+    <span className="source-badge" title={domain}>
+      <span className="source-badge-mark">{getSourceInitial(result)}</span>
+      <span>{domain}</span>
+    </span>
+  );
+}
+
 function getImageUrl(result: SearchResult) {
   return getImageCandidates(result)[0] || null;
 }
@@ -144,11 +163,12 @@ function WebResult(props: {
   return (
     <article className="result result-web">
       <div className="result-body">
-        <div className="result-url">{result.url}</div>
+        <div className="result-source-line"><SourceBadge result={result} /></div>
         <a className="result-title" href={result.url} target="_blank" rel="noreferrer">{result.title}</a>
         {result.content && <div className="result-content">{result.content}</div>}
         <div className="result-subline">
           {result.engine && <span>via {result.engine}</span>}
+          {result.author && <span>by {result.author}</span>}
           {getPublishedDate(result) && <span>{getPublishedDate(result)}</span>}
         </div>
         <ResultActions result={result} query={query} saved={saved} copied={copied} onSave={onSave} onCopy={onCopy} />
@@ -182,7 +202,7 @@ function NewsResult(props: {
       )}
       <div className="news-body">
         <div className="result-subline news-meta">
-          {getDisplaySource(result)}
+          <SourceBadge result={result} />
           {getPublishedDate(result) && <span>{getPublishedDate(result)}</span>}
         </div>
         <a className="news-title" href={result.url} target="_blank" rel="noreferrer">{result.title}</a>
@@ -213,7 +233,7 @@ function ImageResult(props: {
       </a>
       <div className="media-info">
         <a className="media-title" href={result.url} target="_blank" rel="noreferrer">{result.title}</a>
-        <div className="media-source">{getDisplaySource(result)}{result.resolution ? ` · ${result.resolution}` : ""}</div>
+        <div className="media-source"><SourceBadge result={result} />{result.resolution ? ` · ${result.resolution}` : ""}</div>
         <ResultActions result={result} query={query} saved={saved} copied={copied} onSave={onSave} onCopy={onCopy} />
       </div>
     </article>
@@ -257,7 +277,7 @@ function VideoResult(props: {
       <div className="media-info">
         <a className="media-title" href={result.url} target="_blank" rel="noreferrer">{result.title}</a>
         <div className="media-source">
-          {getDisplaySource(result)}
+          <SourceBadge result={result} />
           {result.views ? ` · ${result.views} views` : ""}
           {result.length ? ` · ${result.length}` : ""}
         </div>
@@ -266,6 +286,31 @@ function VideoResult(props: {
       </div>
     </article>
   );
+}
+
+function LoadingSkeleton({ category }: { category: SearchCategory }) {
+  if (category === "images") {
+    return <div className="image-grid loading-grid" aria-label="Loading images">
+      {Array.from({ length: 8 }).map((_, index) => <div className="skeleton-media-card" key={index}>
+        <div className="skeleton skeleton-image" />
+        <div className="skeleton-lines"><span className="skeleton skeleton-line wide" /><span className="skeleton skeleton-line short" /></div>
+      </div>)}
+    </div>;
+  }
+  if (category === "videos") {
+    return <div className="video-grid loading-grid" aria-label="Loading videos">
+      {Array.from({ length: 4 }).map((_, index) => <div className="skeleton-media-card" key={index}>
+        <div className="skeleton skeleton-video" />
+        <div className="skeleton-lines"><span className="skeleton skeleton-line wide" /><span className="skeleton skeleton-line medium" /></div>
+      </div>)}
+    </div>;
+  }
+  return <div className="skeleton-results" aria-label="Loading search results">
+    {Array.from({ length: 6 }).map((_, index) => <div className="skeleton-result" key={index}>
+      <span className="skeleton skeleton-source" /><span className="skeleton skeleton-line title" />
+      <span className="skeleton skeleton-line wide" /><span className="skeleton skeleton-line medium" />
+    </div>)}
+  </div>;
 }
 
 function Pagination({ query, category, page, timeRange }: { query: string; category: SearchCategory; page: number; timeRange: string }) {
@@ -451,11 +496,7 @@ export default function ResultsClient({
         <div className={`results-column ${isMedia ? "results-media-column" : ""}`}>
           {error && <div className="error">{error}</div>}
           {!error && !data && (
-            <div className="loading-state">
-              <span className="loading-dot" />
-              <span>Searching</span>
-              <span className="loading-ellipsis">…</span>
-            </div>
+            <LoadingSkeleton category={category} />
           )}
 
           {data && (
