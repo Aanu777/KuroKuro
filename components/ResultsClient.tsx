@@ -21,6 +21,9 @@ const categories: Array<{ label: string; value: SearchCategory }> = [
   { label: "Images", value: "images" },
   { label: "Videos", value: "videos" },
   { label: "News", value: "news" },
+  { label: "Maps", value: "map" },
+  { label: "Files", value: "files" },
+  { label: "Science", value: "science" },
 ];
 
 const timeRanges = [
