@@ -2,9 +2,10 @@ FROM searxng/searxng:2026.10.4-d48c4b555
 
 USER root
 
-# The official SearXNG image already includes nginx. We use a second,
-# isolated nginx configuration as the only externally exposed port.
-RUN apk add --no-cache nginx wget
+# Use the image's Debian package manager; apk is only available on Alpine.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends nginx wget \
+    && rm -rf /var/lib/apt/lists/*
 
 COPY settings.yml /etc/searxng/settings.yml
 COPY nginx-proxy.conf.template /etc/nginx/kurokuro-proxy.conf.template
