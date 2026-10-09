@@ -238,13 +238,47 @@ export async function GET(request: NextRequest) {
       })
       .sort((a, b) => b.score - a.score || a.originalIndex - b.originalIndex);
 
+    // Remove near-duplicates before source-diversity ranking so repeated pages
+    // cannot distort domain counts and crowd out otherwise useful sources.
+    const preDiversityBuckets = new Map<string, Array<{ title: string; content: string }>>();
+    const uniqueRanked = ranked.filter((entry) => {
+      const hostname = entry.hostname;
+      const title = normalizeText(entry.result.title);
+      const content = normalizeText(entry.result.content).slice(0, 320);
+      if (!hostname || !title) return true;
+
+      const bucket = preDiversityBuckets.get(hostname) || [];
+      const isDuplicate = bucket.some((existing) => {
+        if (existing.title === title) return true;
+
+        const a = new Set(title.split(" ").filter(Boolean));
+        const b = new Set(existing.title.split(" ").filter(Boolean));
+        const intersection = [...a].filter((word) => b.has(word)).length;
+        const titleSimilarity = intersection / Math.max(1, Math.min(a.size, b.size));
+        if (titleSimilarity >= 0.9) return true;
+
+        if (!content || !existing.content) return false;
+        const contentWords = new Set(content.split(" ").filter((word) => word.length > 3));
+        const existingWords = new Set(existing.content.split(" ").filter((word) => word.length > 3));
+        if (contentWords.size < 8 || existingWords.size < 8) return false;
+
+        const overlap = [...contentWords].filter((word) => existingWords.has(word)).length;
+        return overlap / Math.max(1, Math.min(contentWords.size, existingWords.size)) >= 0.88;
+      });
+
+      if (isDuplicate) return false;
+      bucket.push({ title, content });
+      preDiversityBuckets.set(hostname, bucket);
+      return true;
+    });
+
     // Broad searches should not become a wall of results from one domain.
     // Explicit site: searches and highly constrained filetype: searches keep
     // their natural source concentration.
     const diversityEnabled = !siteTarget && !filetypeTarget;
     const diversityStrength = String(categories || "").toLowerCase() === "news" ? 1.35 : 1;
     const selected: RankedResult[] = [];
-    const remaining = [...ranked];
+    const remaining = [...uniqueRanked];
     const domainCounts = new Map<string, number>();
     const intentCounts = new Map<RankedResult["intent"], number>();
 
@@ -337,53 +371,15 @@ export async function GET(request: NextRequest) {
 
     // Collapse near-duplicates that escaped URL canonicalization. We only
     // compare results from the same hostname, so different sites are preserved.
-    const duplicateBuckets = new Map<string, Array<{ title: string; content: string }>>();
-    const deduped = withSnippets.filter((result) => {
-      let hostname = "";
-      try {
-        hostname = new URL(result.url).hostname.toLowerCase().replace(/^www\./, "");
-      } catch {
-        return true;
-      }
-
-      const title = normalizeText(result.title);
-      const content = normalizeText(result.content).slice(0, 320);
-      if (!hostname || !title) return true;
-
-      const bucket = duplicateBuckets.get(hostname) || [];
-      const isDuplicate = bucket.some((existing) => {
-        if (existing.title === title) return true;
-
-        const a = new Set(title.split(" ").filter(Boolean));
-        const b = new Set(existing.title.split(" ").filter(Boolean));
-        const intersection = [...a].filter((word) => b.has(word)).length;
-        const titleSimilarity = intersection / Math.max(1, Math.min(a.size, b.size));
-        if (titleSimilarity >= 0.9) return true;
-
-        if (!content || !existing.content) return false;
-        const contentWords = new Set(content.split(" ").filter((word) => word.length > 3));
-        const existingWords = new Set(existing.content.split(" ").filter((word) => word.length > 3));
-        if (contentWords.size < 8 || existingWords.size < 8) return false;
-
-        const overlap = [...contentWords].filter((word) => existingWords.has(word)).length;
-        return overlap / Math.max(1, Math.min(contentWords.size, existingWords.size)) >= 0.88;
-      });
-
-      if (isDuplicate) return false;
-      bucket.push({ title, content });
-      duplicateBuckets.set(hostname, bucket);
-      return true;
-    });
-
     const normalized: SearchResponse = {
       ...data,
-      results: deduped,
+      results: withSnippets,
       // Keep SearXNG's estimated total when available. The returned page may
       // contain fewer visible items after local duplicate filtering.
       number_of_results:
         typeof data.number_of_results === "number"
           ? data.number_of_results
-          : deduped.length,
+          : withSnippets.length,
     };
 
     return NextResponse.json(normalized, {
