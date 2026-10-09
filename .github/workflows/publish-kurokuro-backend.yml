@@ -14,7 +14,7 @@ permissions:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository_owner }}/kurokuro-search-backend
+  IMAGE_NAME: aanu777/kurokuro-search-backend
 
 jobs:
   build-and-push:
