@@ -367,7 +367,12 @@ export async function GET(request: NextRequest) {
     const normalized: SearchResponse = {
       ...data,
       results: deduped,
-      number_of_results: deduped.length,
+      // Keep SearXNG's estimated total when available. The returned page may
+      // contain fewer visible items after local duplicate filtering.
+      number_of_results:
+        typeof data.number_of_results === "number"
+          ? data.number_of_results
+          : deduped.length,
     };
 
     return NextResponse.json(normalized, {
