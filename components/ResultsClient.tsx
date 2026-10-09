@@ -166,7 +166,9 @@ function MediaImage({
   const [index, setIndex] = useState(0);
   const src = candidates[index];
 
-  if (!src) return <div className="media-placeholder"><ImageIcon size={24} /></div>;
+  // Some result engines provide multiple thumbnail URLs. Try each candidate,
+  // then render the intentional placeholder instead of leaving a broken image.
+  if (!src) return <div className={`media-placeholder ${className || ""}`}><ImageIcon size={24} /></div>;
 
   return (
     <img
@@ -175,7 +177,7 @@ function MediaImage({
       alt={alt}
       loading="lazy"
       referrerPolicy="no-referrer"
-      onError={() => setIndex((current) => current + 1)}
+      onError={() => setIndex((current) => Math.min(current + 1, candidates.length))}
     />
   );
 }
