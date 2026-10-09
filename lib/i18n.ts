@@ -27,11 +27,11 @@ const en: Dictionary = {
   aggregated:"Aggregated search", resultsFor:"Results for", found:"found", save:"Save", saved:"Saved", copyLink:"Copy link", copied:"Copied", open:"Open",
   via:"via", by:"by", preview:"Preview", openOriginal:"Open original", imagePreview:"Image preview", closePreview:"Close preview",
   previousImage:"Previous image", nextImage:"Next image", previewUnavailable:"Preview unavailable", play:"Play", openVideo:"Open video",
-  noResults:"No results found.", tryBroader:"Try a broader search or switch to the Web tab.",
+tryBroader:"Try a broader search or switch to the Web tab.",
   noImages:"No previewable images found.", loading:"Searching", previous:"Previous", next:"Next",
   searchHistoryLives:"Your search history lives in this browser. It is never required for searching.",
   rememberSearches:"Remember searches locally so they can be found and re-run later.",
-  olderRemoved:"Older entries are removed when this page is opened.", filterHistory:"Filter history", clearAll:"Clear all",
+filterHistory:"Filter history", clearAll:"Clear all",
   historyDisabled:"History is disabled. New searches will not be stored.", noHistoryMatch:"No history matches that filter.",
   noSavedSearches:"No saved searches yet.", delete:"Delete", searchBookmarks:"Search bookmarks", allFolders:"All folders", newFolder:"New folder",
   bookmarksSubtitle:"A searchable local library for pages you want to keep.", noBookmarksMatch:"No bookmarks match your search.",
@@ -78,7 +78,7 @@ const extra: Record<string, Partial<Dictionary>> = {
   ro:{web:"Web",images:"Imagini",videos:"Videoclipuri",news:"Știri",maps:"Hărți",files:"Fișiere",science:"Știință",search:"Caută",searchWeb:"Caută pe web",history:"Istoric",bookmarks:"Marcaje",settings:"Setări",tagline:"Caută pe web.",privacyNote:"Privat prin design. Istoricul local rămâne pe dispozitiv.",filters:"Filtre",anyTime:"Oricând",pastDay:"Ultima zi",pastWeek:"Ultima săptămână",pastMonth:"Ultima lună",pastYear:"Ultimul an",save:"Salvează",saved:"Salvat",open:"Deschide",preview:"Previzualizare",delete:"Șterge"}
 };
 
-for (const [key, value] of Object.entries(extra)) dictionaries[key] = { ...en, ...value };
+for (const [key, value] of Object.entries(extra)) dictionaries[key] = { ...en, ...Object.fromEntries(Object.entries(value).filter(([, translated]) => typeof translated === "string")) };
 for (const [key, value] of Object.entries(dictionaries)) dictionaries[key] = { ...en, ...value };
 
 export function normalizeLocale(value: string | null | undefined): Locale {
