@@ -4,7 +4,6 @@ set -eu
 : "${KUROKURO_API_TOKEN:?Set KUROKURO_API_TOKEN in the hosting dashboard}"
 : "${SEARXNG_SECRET:?Set SEARXNG_SECRET in the hosting dashboard}"
 
-# Keep the proxy token safe for insertion into the nginx configuration.
 case "$KUROKURO_API_TOKEN" in
   *[!a-fA-F0-9]*|'')
     echo "KUROKURO_API_TOKEN must be a hexadecimal secret." >&2
@@ -16,18 +15,14 @@ if [ "${#KUROKURO_API_TOKEN}" -lt 48 ]; then
   exit 1
 fi
 
-sed "s/__KUROKURO_API_TOKEN__/$KUROKURO_API_TOKEN/g" \
-  /etc/nginx/kurokuro-proxy.conf.template > /tmp/kurokuro-proxy.conf
-
-# Start the official SearXNG entrypoint in the background. Its HTTP listener
-# stays inside this container; only the authenticated proxy port is exposed.
+# Start the official SearXNG entrypoint. Its listener remains private on port 8080.
 /usr/local/searxng/dockerfiles/docker-entrypoint.sh &
 SEARXNG_PID=$!
 
 ready=0
 attempt=0
 while [ "$attempt" -lt 45 ]; do
-  if wget -q -O /dev/null http://127.0.0.1:8080/; then
+  if python3 -c 'import urllib.request; urllib.request.urlopen("http://127.0.0.1:8080/", timeout=1).read(1)' >/dev/null 2>&1; then
     ready=1
     break
   fi
@@ -46,4 +41,4 @@ if [ "$ready" -ne 1 ]; then
   exit 1
 fi
 
-exec nginx -c /tmp/kurokuro-proxy.conf -g "daemon off;"
+exec python3 /app/proxy.py
