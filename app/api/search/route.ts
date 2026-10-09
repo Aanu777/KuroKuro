@@ -5,12 +5,17 @@ export const dynamic = "force-dynamic";
 
 const SEARXNG_URL = process.env.SEARXNG_URL || "http://localhost:8080";
 const SEARCH_TIMEOUT_MS = 5500;
+const BACKEND_TOKEN = process.env.KUROKURO_BACKEND_TOKEN;
 
 export async function GET(request: NextRequest) {
   const incoming = request.nextUrl.searchParams;
   const q = incoming.get("q")?.trim();
 
   if (!q) return NextResponse.json({ error: "Missing search query." }, { status: 400 });
+
+  if (process.env.NODE_ENV === "production" && !BACKEND_TOKEN) {
+    return NextResponse.json({ error: "Search backend is not configured securely." }, { status: 503 });
+  }
 
   const params = new URLSearchParams({
     q,
@@ -33,7 +38,11 @@ export async function GET(request: NextRequest) {
 
   try {
     const response = await fetch(`${SEARXNG_URL.replace(/\/$/, "")}/search?${params.toString()}`, {
-      headers: { Accept: "application/json", "Accept-Encoding": "gzip, deflate, br" },
+      headers: {
+        Accept: "application/json",
+        "Accept-Encoding": "gzip, deflate, br",
+        ...(BACKEND_TOKEN ? { "X-Kurokuro-Token": BACKEND_TOKEN } : {}),
+      },
       signal: controller.signal,
       cache: "no-store",
     });
