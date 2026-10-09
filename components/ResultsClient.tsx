@@ -693,15 +693,6 @@ export default function ResultsClient({
 
           {data && (
             <>
-              <div className="result-toolbar">
-                <div className="result-meta">
-                  Results for <strong>{data.query}</strong>
-                  {typeof data.number_of_results === "number" ? ` · ${data.number_of_results.toLocaleString()} found` : ""}
-                </div>
-                <span className="result-status"><span className="status-dot" /> {t("aggregated")}</span>
-              </div>
-
-
               {data.suggestions && data.suggestions.length > 0 && (
                 <div className="suggestions">
                   <span className="suggestions-label">{t("related")}</span>
