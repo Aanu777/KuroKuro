@@ -1101,3 +1101,37 @@ html[data-theme="dark"] .result-content { color: color-mix(in srgb, var(--text) 
   .news-title { font-size: 15px; }
   .news-body .result-content { -webkit-line-clamp: 2; }
 }
+
+
+/* Phase 12 — quieter media cards with clear keyboard/touch affordances */
+.image-preview-button {
+  width: 100%;
+  padding: 0;
+  border: 0;
+  color: inherit;
+  cursor: zoom-in;
+}
+.image-preview-button:focus-visible {
+  outline: 2px solid var(--line-strong);
+  outline-offset: -3px;
+}
+.image-card .result-actions {
+  opacity: 0;
+  transition: opacity .16s ease;
+}
+.image-card:hover .result-actions,
+.image-card:focus-within .result-actions {
+  opacity: 1;
+}
+.media-placeholder {
+  min-height: 72px;
+}
+.video-poster:focus-visible {
+  outline: 2px solid var(--line-strong);
+  outline-offset: -3px;
+}
+@media (hover: none), (max-width: 760px) {
+  .image-card .result-actions {
+    opacity: 1;
+  }
+}
