@@ -1230,45 +1230,6 @@ html[data-theme="dark"] .result-content { color: color-mix(in srgb, var(--text) 
   margin: 0 auto;
   text-align: center;
 }
-.home-eyebrow {
-  display: inline-flex;
-  align-items: center;
-  gap: 9px;
-  margin-bottom: 29px;
-  color: var(--muted);
-  font-size: 10px;
-  font-weight: 650;
-  letter-spacing: .16em;
-}
-.home-eyebrow-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: #788a71;
-  box-shadow: 0 0 0 4px color-mix(in srgb, #788a71 14%, transparent);
-}
-.home-eyebrow-separator { color: var(--line-strong); }
-.home-wordmark-wrap { display: flex; flex-direction: column; align-items: center; gap: 13px; }
-.wordmark {
-  font-size: clamp(52px, 10.5vw, 98px);
-  letter-spacing: -.09em;
-  font-weight: 800;
-  line-height: .9;
-}
-.wordmark-period { color: var(--muted); }
-.home-wordmark-caption {
-  color: var(--muted);
-  font-size: 9px;
-  letter-spacing: .29em;
-  font-weight: 600;
-}
-.tagline {
-  max-width: 470px;
-  margin: 24px auto 34px;
-  color: var(--muted);
-  font-size: clamp(14px, 1.8vw, 16px);
-  line-height: 1.65;
-}
 .home-search-panel {
   padding: 8px;
   border: 1px solid color-mix(in srgb, var(--line-strong) 65%, transparent);
@@ -1357,34 +1318,6 @@ html[data-theme="dark"] .result-content { color: color-mix(in srgb, var(--text) 
   letter-spacing: .17em;
 }
 .home-scroll-cue span { width: 27px; height: 1px; background: var(--line-strong); }
-.home-highlights {
-  width: min(1060px, calc(100% - 48px));
-  margin: 0 auto;
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  border-top: 1px solid var(--line);
-  border-bottom: 1px solid var(--line);
-}
-.home-highlight {
-  min-width: 0;
-  padding: 25px 28px 28px;
-  border-right: 1px solid var(--line);
-}
-.home-highlight:first-child { padding-left: 8px; }
-.home-highlight:last-child { border-right: 0; padding-right: 8px; }
-.home-highlight-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
-.home-highlight-icon {
-  width: 34px;
-  height: 34px;
-  display: grid;
-  place-items: center;
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  background: var(--surface);
-}
-.home-highlight-index { color: var(--muted); font-size: 10px; letter-spacing: .12em; }
-.home-highlight h2 { margin: 0 0 8px; font-size: 13px; letter-spacing: -.015em; font-weight: 650; }
-.home-highlight p { max-width: 270px; margin: 0; color: var(--muted); font-size: 12px; line-height: 1.7; }
 .home-footer-new {
   width: min(1240px, 100%);
   margin: 0 auto;
@@ -1406,21 +1339,10 @@ html[data-theme="dark"] .home-search-panel { box-shadow: 0 24px 70px rgba(0,0,0,
   .home-top-links { gap: 13px; }
   .home-top-links > a:not(.home-settings-link) { display: none; }
   .home-main { padding: 85px 18px 57px; }
-  .home-eyebrow { margin-bottom: 25px; font-size: 9px; }
   .home-search-panel { border-radius: 16px; padding: 6px; }
   .home-search-panel .search-input { height: 55px; }
   .home-search-panel .search-submit { top: 7px; right: 7px; }
   .home-search-foot-note { display: none; }
-  .home-highlights { width: calc(100% - 36px); grid-template-columns: 1fr; }
-  .home-highlight, .home-highlight:first-child, .home-highlight:last-child {
-    padding: 19px 4px;
-    border-right: 0;
-    border-bottom: 1px solid var(--line);
-  }
-  .home-highlight:last-child { border-bottom: 0; }
-  .home-highlight-top { margin-bottom: 12px; }
-  .home-highlight p { max-width: none; }
-  .home-scroll-cue { margin-top: 43px; }
   .home-footer-new { padding: 22px 18px; flex-wrap: wrap; font-size: 8px; }
   .home-footer-center { display: none; }
 }
@@ -1428,7 +1350,6 @@ html[data-theme="dark"] .home-search-panel { box-shadow: 0 24px 70px rgba(0,0,0,
   .home-mini-brand { font-size: 10px; }
   .home-brand-mark { width: 26px; height: 26px; }
   .wordmark { font-size: clamp(46px, 12vw, 56px); }
-  .home-wordmark-caption { font-size: 8px; letter-spacing: .22em; }
   .home-search-panel .tabs { gap: 2px; }
   .home-search-panel .tab { padding: 7px 8px; font-size: 11px; }
   .home-footer-new { gap: 12px; }
