@@ -12,14 +12,13 @@ search:
   safe_search: 1
 
 server:
-  port: 10000
+  port: 8080
   bind_address: "0.0.0.0"
-  secret_key: "replace-this-with-SEARXNG_SECRET"
-  limiter: true
-  public_instance: true
-  image_proxy: true
+  secret_key: "replace-at-runtime-with-SEARXNG_SECRET"
+  limiter: false
+  public_instance: false
+  image_proxy: false
   base_url: false
 
 valkey:
-  # Set SEARXNG_VALKEY_URL in the deployment environment.
-  url: valkey://localhost:6379/0
+  url: false
