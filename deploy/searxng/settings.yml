@@ -1,0 +1,25 @@
+use_default_settings: true
+
+general:
+  instance_name: "KUROKURO Search"
+  debug: false
+  enable_metrics: false
+
+search:
+  formats:
+    - html
+    - json
+  safe_search: 1
+
+server:
+  port: 10000
+  bind_address: "0.0.0.0"
+  secret_key: "replace-this-with-SEARXNG_SECRET"
+  limiter: true
+  public_instance: true
+  image_proxy: true
+  base_url: false
+
+valkey:
+  # Set SEARXNG_VALKEY_URL in the deployment environment.
+  url: valkey://localhost:6379/0
