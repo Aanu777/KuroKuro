@@ -30,7 +30,9 @@ http {
     location = /healthz {
       access_log off;
       default_type text/plain;
-      return 200 "ok\n";
+      add_header Access-Control-Allow-Origin "*" always;
+      add_header Cache-Control "no-store" always;
+      return 200 "ok\\n";
     }
 
     location / {
