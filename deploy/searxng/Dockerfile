@@ -1,11 +1,23 @@
-FROM searxng/searxng:2026.9.25-12f8b6515
+FROM searxng/searxng:2026.10.4-d48c4b555
+
+USER root
+
+# The official SearXNG image already includes nginx. We use a second,
+# isolated nginx configuration as the only externally exposed port.
+RUN apk add --no-cache nginx wget
 
 COPY settings.yml /etc/searxng/settings.yml
+COPY nginx-proxy.conf.template /etc/nginx/kurokuro-proxy.conf.template
+COPY start.sh /app/start.sh
 
+RUN chmod 755 /app/start.sh
+
+ENV SEARXNG_PORT=8080
 ENV SEARXNG_BIND_ADDRESS=0.0.0.0
-ENV SEARXNG_PORT=10000
-ENV SEARXNG_PUBLIC_INSTANCE=true
-ENV SEARXNG_LIMITER=true
-ENV SEARXNG_IMAGE_PROXY=true
+ENV SEARXNG_LIMITER=false
+ENV SEARXNG_PUBLIC_INSTANCE=false
+ENV SEARXNG_IMAGE_PROXY=false
 
-EXPOSE 10000
+EXPOSE 7860
+
+ENTRYPOINT ["/bin/sh", "/app/start.sh"]
