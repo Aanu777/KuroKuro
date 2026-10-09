@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { ArrowUpRight, Command, EyeOff } from "lucide-react";
 import SearchBox from "@/components/SearchBox";
+import InstallAppButton from "@/components/InstallAppButton";
 import { useI18n } from "@/components/I18nProvider";
 
 export default function Home() {
@@ -21,6 +22,7 @@ export default function Home() {
         <nav className="home-top-links" aria-label={t("utilities")}>
           <Link href="/history">{t("history")}</Link>
           <Link href="/bookmarks">{t("bookmarks")}</Link>
+          <InstallAppButton />
           <Link href="/settings" className="home-settings-link">
             {t("settings")} <ArrowUpRight size={14} />
           </Link>
@@ -47,7 +49,6 @@ export default function Home() {
             <EyeOff size={13} strokeWidth={1.8} />
             {t("privacyNote")}
           </p>
-
         </div>
       </main>
 
