@@ -112,20 +112,24 @@ export async function GET(request: NextRequest) {
     };
 
     const intentSignals = {
-      docs: /docs?|documentation|reference|api|developer|readme|\/reference\//i,
-      tutorial: /tutorial|guide|how[- ]to|learn|course|lesson|example|\/learn\//i,
-      community: /stackoverflow|reddit|forum|discussion|issue|questions?|answers?/i,
+      docs: /docs?|documentation|reference|api|developer|readme|\/reference\/|\/docs?\//i,
+      tutorial: /tutorial|guide|how[- ]to|learn|course|lesson|example|walkthrough|beginner|\/learn\//i,
+      community: /stackoverflow|reddit|forum|discussion|issue|questions?|answers?|troubleshoot|fixes/i,
       news: /news|\/news\//i,
       academic: /arxiv|doi|research|paper|journal|study|proceedings?/i,
       official: /official|\/official\//i,
+      comparison: /\b(vs\.?|versus|compare|comparison|differences?|alternative|alternatives)\b/i,
+      definition: /\b(what is|what are|meaning of|definition of|explained)\b/i,
     };
 
     const queryIntent = {
-      docs: /\b(docs?|documentation|api|reference|sdk)\b/i.test(cleanedQuery),
-      tutorial: /\b(how|tutorial|guide|learn|example|examples|course)\b/i.test(cleanedQuery),
-      community: /\b(error|errors|issue|problem|fix|broken|not working|stackoverflow|question)\b/i.test(cleanedQuery),
+      docs: /\b(docs?|documentation|api|reference|sdk|syntax|parameters?|options?)\b/i.test(cleanedQuery),
+      tutorial: /\b(how|tutorial|guide|learn|example|examples|course|install|setup|configure|build|make|create|implement|fix|use)\b/i.test(cleanedQuery),
+      community: /\b(error|errors|issue|problem|broken|not working|stackoverflow|question|help)\b/i.test(cleanedQuery),
       academic: /\b(paper|research|study|algorithm|academic|journal|thesis)\b/i.test(cleanedQuery),
       news: /\b(news|latest|today|current|recent|update|updates)\b/i.test(cleanedQuery) || Boolean(timeRange),
+      comparison: /\b(vs\.?|versus|compare|comparison|differences?|alternative|alternatives|best)\b/i.test(cleanedQuery),
+      definition: /\b(what is|what are|meaning|definition|explain|explained)\b/i.test(cleanedQuery),
     };
 
     function classifyIntent(result: (typeof results)[number], hostname: string): RankedResult["intent"] {
@@ -222,6 +226,13 @@ export async function GET(request: NextRequest) {
         if (queryIntent.community && intent === "community") score += 14;
         if (queryIntent.academic && intent === "academic") score += 16;
         if (queryIntent.news && intent === "news") score += 12;
+
+        // Comparisons benefit from pages that explicitly weigh options, while
+        // definition-style searches benefit from explanatory sources. Keep the
+        // boosts small so actual query matches remain the primary signal.
+        const resultText = `${String(result.title || "")} ${String(result.content || "")} ${String(result.url || "")}`;
+        if (queryIntent.comparison && intentSignals.comparison.test(resultText)) score += 9;
+        if (queryIntent.definition && intentSignals.definition.test(resultText)) score += 8;
 
         return { result, score, originalIndex, hostname, intent };
       })
