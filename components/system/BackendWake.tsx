@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_SEARCH_BACKEND_URL?.replace(/\\/$/, "");
+const BACKEND_URL = process.env.NEXT_PUBLIC_SEARCH_BACKEND_URL?.replace(/\/$/, "");
 
 export function BackendWake() {
   useEffect(() => {
