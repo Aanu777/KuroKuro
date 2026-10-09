@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { I18nProvider } from "@/components/I18nProvider";
+import { BackendWake } from "@/components/system/BackendWake";
 
 export const metadata: Metadata = {
   title: "KUROKURO — Search the web. Keep it yours.",
@@ -32,7 +33,7 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
-      <body><I18nProvider>{children}</I18nProvider></body>
+      <body><I18nProvider><BackendWake />{children}</I18nProvider></body>
     </html>
   );
 }
