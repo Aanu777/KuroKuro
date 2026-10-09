@@ -369,8 +369,6 @@ export async function GET(request: NextRequest) {
       };
     });
 
-    // Collapse near-duplicates that escaped URL canonicalization. We only
-    // compare results from the same hostname, so different sites are preserved.
     const normalized: SearchResponse = {
       ...data,
       results: withSnippets,
