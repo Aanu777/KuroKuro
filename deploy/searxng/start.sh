@@ -15,8 +15,12 @@ if [ "${#KUROKURO_API_TOKEN}" -lt 48 ]; then
   exit 1
 fi
 
-# Start the official SearXNG entrypoint. Its listener remains private on port 8080.
-/usr/local/searxng/dockerfiles/docker-entrypoint.sh &
+# Inject the private runtime secret into SearXNG's settings file.
+python3 -c 'import os,pathlib; p=pathlib.Path("/etc/searxng/settings.yml"); s=p.read_text(); p.write_text(s.replace("replace-at-runtime-with-SEARXNG_SECRET", os.environ["SEARXNG_SECRET"]))'
+
+# Start SearXNG using the entrypoint included in the official image.
+# Its listener remains private on port 8080.
+/usr/local/searxng/entrypoint.sh &
 SEARXNG_PID=$!
 
 ready=0
