@@ -1,12 +1,3 @@
----
-title: KUROKURO Search Backend
-emoji: 🔎
-colorFrom: gray
-colorTo: purple
-sdk: docker
-app_port: 7860
----
-
 # KUROKURO protected SearXNG backend
 
 This container runs the existing SearXNG search engine behind an authenticated HTTP proxy.
@@ -26,7 +17,7 @@ Example token generation in PowerShell (run locally; do not commit the result):
 
 ```powershell
 $bytes = New-Object byte[] 32
-[Security.Cryptography.RandomNumberGenerator]::Fill($bytes)
+[Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($bytes)
 $KUROKURO_API_TOKEN = -join ($bytes | ForEach-Object { $_.ToString("x2") })
 $KUROKURO_API_TOKEN
 ```
