@@ -702,24 +702,6 @@ export default function ResultsClient({
               </div>
 
 
-          <details className="power-search">
-            <summary>{t("powerSearch")}</summary>
-            <div className="power-search-body">
-              <div className="power-search-copy">
-                Use SearXNG operators directly in the search box. Kurokuro passes them through unchanged.
-              </div>
-              <div className="power-search-examples">
-                <code>site:github.com cybersecurity</code>
-                <code>site:edu machine learning</code>
-                <code>filetype:pdf networking</code>
-                <code>"exact phrase"</code>
-                <code>security -malware</code>
-                <code>!wp quantum computing</code>
-                <code>:ur پاکستان</code>
-              </div>
-            </div>
-          </details>
-
               {data.suggestions && data.suggestions.length > 0 && (
                 <div className="suggestions">
                   <span className="suggestions-label">{t("related")}</span>
@@ -777,6 +759,24 @@ export default function ResultsClient({
               )}
 
               <Pagination query={query} category={category} page={page} timeRange={timeRange} />
+
+              <details className="power-search">
+                <summary>{t("powerSearch")}</summary>
+                <div className="power-search-body">
+                  <div className="power-search-copy">
+                    Use SearXNG operators directly in the search box. Kurokuro passes them through unchanged.
+                  </div>
+                  <div className="power-search-examples">
+                    <code>site:github.com cybersecurity</code>
+                    <code>site:edu machine learning</code>
+                    <code>filetype:pdf networking</code>
+                    <code>"exact phrase"</code>
+                    <code>security -malware</code>
+                    <code>!wp quantum computing</code>
+                    <code>:ur پاکستان</code>
+                  </div>
+                </div>
+              </details>
               {category === "images" && previewIndex !== null && (
                 <ImagePreviewModal
                   results={data.results.filter((result) => Boolean(getImageUrl(result)))}
