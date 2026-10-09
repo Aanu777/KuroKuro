@@ -78,7 +78,13 @@ const extra: Record<string, Partial<Dictionary>> = {
   ro:{web:"Web",images:"Imagini",videos:"Videoclipuri",news:"Știri",maps:"Hărți",files:"Fișiere",science:"Știință",search:"Caută",searchWeb:"Caută pe web",history:"Istoric",bookmarks:"Marcaje",settings:"Setări",tagline:"Caută pe web.",privacyNote:"Privat prin design. Istoricul local rămâne pe dispozitiv.",filters:"Filtre",anyTime:"Oricând",pastDay:"Ultima zi",pastWeek:"Ultima săptămână",pastMonth:"Ultima lună",pastYear:"Ultimul an",save:"Salvează",saved:"Salvat",open:"Deschide",preview:"Previzualizare",delete:"Șterge"}
 };
 
-for (const [key, value] of Object.entries(extra)) dictionaries[key] = { ...en, ...Object.fromEntries(Object.entries(value).filter(([, translated]) => typeof translated === "string")) };
+for (const [key, value] of Object.entries(extra)) {
+  const dictionary: Dictionary = { ...en };
+  for (const [entryKey, translated] of Object.entries(value)) {
+    if (typeof translated === "string") dictionary[entryKey] = translated;
+  }
+  dictionaries[key] = dictionary;
+}
 for (const [key, value] of Object.entries(dictionaries)) dictionaries[key] = { ...en, ...value };
 
 export function normalizeLocale(value: string | null | undefined): Locale {
