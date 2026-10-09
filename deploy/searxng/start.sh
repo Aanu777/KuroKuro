@@ -15,8 +15,11 @@ if [ "${#KUROKURO_API_TOKEN}" -lt 48 ]; then
   exit 1
 fi
 
-# Inject the private runtime secret into SearXNG's settings file.
-python3 -c 'import os,pathlib; p=pathlib.Path("/etc/searxng/settings.yml"); s=p.read_text(); p.write_text(s.replace("replace-at-runtime-with-SEARXNG_SECRET", os.environ["SEARXNG_SECRET"]))'
+# The hosting platform may mount /etc/searxng read-only. Create the
+# runtime config in /tmp, inject the secret, and point SearXNG at it.
+cp /etc/searxng/settings.yml /tmp/kurokuro-settings.yml
+python3 -c 'import os,pathlib; p=pathlib.Path("/tmp/kurokuro-settings.yml"); s=p.read_text(); p.write_text(s.replace("replace-at-runtime-with-SEARXNG_SECRET", os.environ["SEARXNG_SECRET"]))'
+export SEARXNG_SETTINGS_PATH=/tmp/kurokuro-settings.yml
 
 # Start SearXNG using the entrypoint included in the official image.
 # Its listener remains private on port 8080.
