@@ -4,6 +4,7 @@ export const dynamic = "force-dynamic";
 
 const SEARXNG_URL = process.env.SEARXNG_URL || "http://localhost:8080";
 const TIMEOUT_MS = 2200;
+const BACKEND_TOKEN = process.env.KUROKURO_BACKEND_TOKEN;
 
 function cleanSuggestions(value: unknown, query: string) {
   if (!Array.isArray(value)) return [];
@@ -47,6 +48,10 @@ async function fetchWithTimeout(url: string, init?: RequestInit) {
 export async function GET(request: NextRequest) {
   const q = request.nextUrl.searchParams.get("q")?.trim();
 
+  if (process.env.NODE_ENV === "production" && !BACKEND_TOKEN) {
+    return NextResponse.json({ suggestions: [] });
+  }
+
   if (!q || q.length < 2) {
     return NextResponse.json({ suggestions: [] });
   }
@@ -57,7 +62,10 @@ export async function GET(request: NextRequest) {
     const searxResponse = await fetchWithTimeout(
       `${SEARXNG_URL.replace(/\/$/, "")}/autocompleter?q=${encodeURIComponent(q)}`,
       {
-        headers: { Accept: "application/json" },
+        headers: {
+          Accept: "application/json",
+          ...(BACKEND_TOKEN ? { "X-Kurokuro-Token": BACKEND_TOKEN } : {}),
+        },
         cache: "no-store",
       },
     );
