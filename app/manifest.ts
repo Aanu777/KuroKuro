@@ -13,6 +13,7 @@ export default function manifest(): MetadataRoute.Manifest {
     background_color: "#090909",
     theme_color: "#090909",
     orientation: "portrait",
+    // Keep icon purpose values as separate valid manifest tokens.
     icons: [
       {
         src: "/icons/kurokuro.svg",
